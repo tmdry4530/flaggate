@@ -24,3 +24,34 @@ Fallback if the coding agent is flaky on camera: run the same prompt with the ke
 
 Recording checklist: no keys on screen (env key masked in all FlagGate output; never `cat local.env`),
 timer overlay, font ≥ 18 pt, rehearse twice from a clean `selfhost-up.sh` + `seed.sh` run.
+
+## Recording pipeline (spike, 2026-11-26)
+
+Terminal clips are recorded with **asciinema 2.4.0 → agg 1.9.0 → ffmpeg 7.1.5**. All three are free and need no
+account: asciinema is a pure-Python PyPI package (installed into `demo-video/.tools`, a uv venv), `agg` is a
+prebuilt binary (`~/.local/bin`), ffmpeg is already on the box. Chosen over vhs and tmux+ffmpeg because it
+records what the real commands print (a `.cast` text file you can diff and scan for secrets) and renders the same
+cast to gif and mp4 again at any speed.
+
+```bash
+demo-video/setup-tools.sh                       # installs/checks asciinema, agg, ffmpeg (idempotent)
+.venv/bin/python demo-video/record.py test-clip    # ~16 s clip: fg plan, refused apply, fg approve
+.venv/bin/python demo-video/record.py readme-demo --no-render   # cast only (source of the README demo output)
+# options: --speed 1.3 (playback speed), --idle 2 (cap idle gaps in seconds), --no-render
+```
+
+What `record.py` does: creates a **throw-away Flagsmith organisation** (the "Toggle Wars Demo" environment is
+never touched), seeds 60 identities, creates a throw-away approver key and gatekeeper under `/tmp/fgdemo-*`, runs
+`demo-video/scenario.py` inside `asciinema rec` with simulated typing, renders, and then deletes the organisation,
+the temp directory and the plaintext env file. Output goes to `demo-video/clips/<scenario>.{cast,gif,mp4}`.
+That folder is **not** `dist/`, `out/` or `build/` (those are wiped when the box is replaced). The `.cast` files
+(about 10 KB) are committed; `.gif`/`.mp4` and `demo-video/.tools/` are gitignored, so after a box replacement
+rerun `setup-tools.sh` and `record.py`.
+
+`fg approve` really requires a TTY. The scenario runs it in a child pty and types the first 4 hash characters
+and the passphrase of the throw-away key (getpass does not echo it, so it is not in the cast). That is a recording
+convenience for a throw-away key, not a way around the approval check.
+
+The **main recording** (the 3:00 script above, with the coding agent and `fg watch`) happens after dev2's e2e.
+For screen capture of several panes use the same cast→agg path per pane, or tmux plus ffmpeg x11grab; neither is
+tested yet. Add the clips to the final video in an editor; the voice-over is separate.

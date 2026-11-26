@@ -210,9 +210,10 @@ def compute_impact(
     Guardrails:
       * ``plan.guardrails.max_exposure_pct``: for every feature, the share of sampled identities whose
         *enabled state or plain value* changes must not exceed it. Exceeding => ``approvable: false``.
-      * ``max_variant_shift_pct`` (optional keyword; not part of the plan schema): same for multivariate
-        variant re-assignment (A/B weights). Experiments legitimately move a large share of users between
-        variants, so this is only enforced if given; the shift is always reported.
+      * ``plan.guardrails.max_variant_shift_pct`` (optional): same for multivariate variant re-assignment
+        (A/B weights). Experiments legitimately move a large share of users between variants, so this is only
+        enforced if set; the shift is always reported. The ``max_variant_shift_pct`` keyword, when not None,
+        overrides the plan's value (e.g. a stricter limit from the CLI).
     ``id_samples``: when the plan creates a segment with a PERCENTAGE_SPLIT and the server-assigned segment id is
     unknown (no ``hints``), exposure is also evaluated for that many other ids and the guardrails are checked
     against the worst case (``report["id_sensitivity"]``). 0 disables it.
@@ -220,6 +221,8 @@ def compute_impact(
     An empty sample, an op that cannot be applied, or any guardrail violation makes the plan not approvable.
     """
     view = plan if isinstance(plan, Plan) else Plan.model_validate(plan)
+    if max_variant_shift_pct is None:
+        max_variant_shift_pct = view.guardrails.max_variant_shift_pct
     idents = identities_from_records(identities)
     n = len(idents)
     fetched = fetched_at or datetime.now(KST)
@@ -479,7 +482,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ids.add_argument("--identities-live", action="store_true", help="fetch identities via the Admin API")
     ap.add_argument("--limit", type=int, default=500, help="max identities fetched with --identities-live")
     ap.add_argument("--max-variant-shift-pct", type=float, default=None,
-                    help="optional limit on multivariate variant re-assignment (not in the plan schema)")
+                    help="override plan.guardrails.max_variant_shift_pct (limit on multivariate variant re-assignment)")
     ap.add_argument("--json", action="store_true", help="print the JSON report instead of text")
     args = ap.parse_args(argv)
 

@@ -263,3 +263,33 @@ def test_known_segment_id_or_disabled_sampling_skips_sensitivity(env_doc, plan, 
 def test_no_split_no_sensitivity(env_doc, identities, make_plan):
     p = make_plan([{"op": "set_segment_override", "feature": "new_checkout", "segment": "pro_users", "enabled": True}])
     assert compute_impact(env_doc, p, identities).report["id_sensitivity"] is None
+
+
+def test_plan_guardrail_max_variant_shift_is_read_from_the_plan(env_doc, plan, identities):
+    plan["guardrails"]["max_variant_shift_pct"] = 10          # the demo A/B shifts ~52% of identities
+    r = compute_impact(env_doc, plan, identities).report
+    assert r["guardrails"]["max_variant_shift_pct"] == 10
+    assert not r["approvable"] and not r["guardrails_ok"]
+    assert any("variant shift" in v and "max_variant_shift_pct 10%" in v for v in r["guardrails"]["violations"])
+    text = render_text(r)
+    assert text.splitlines()[2] == "VERDICT: NOT APPROVABLE" and "variant shift" in text.splitlines()[1]
+
+
+def test_plan_guardrail_max_variant_shift_within_limit_is_approvable(env_doc, plan, identities):
+    plan["guardrails"]["max_variant_shift_pct"] = 60
+    r = compute_impact(env_doc, plan, identities).report
+    assert r["guardrails"]["max_variant_shift_pct"] == 60 and r["approvable"]
+
+
+def test_variant_shift_kwarg_overrides_the_plan(env_doc, plan, identities):
+    plan["guardrails"]["max_variant_shift_pct"] = 10           # plan says: too strict for this A/B
+    loose = compute_impact(env_doc, plan, identities, max_variant_shift_pct=60).report
+    assert loose["guardrails"]["max_variant_shift_pct"] == 60 and loose["approvable"]
+    plan["guardrails"]["max_variant_shift_pct"] = 60           # plan says OK, kwarg is stricter
+    strict = compute_impact(env_doc, plan, identities, max_variant_shift_pct=10).report
+    assert strict["guardrails"]["max_variant_shift_pct"] == 10 and not strict["approvable"]
+
+
+def test_unset_plan_guardrail_still_means_no_variant_limit(env_doc, plan, identities):
+    r = compute_impact(env_doc, plan, identities).report
+    assert r["guardrails"]["max_variant_shift_pct"] is None and r["approvable"]

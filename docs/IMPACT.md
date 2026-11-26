@@ -26,7 +26,7 @@ verify_live(res, api_url=..., environment_key=..., server_key=...).summary()   #
   `assumptions`, `id_sensitivity`, `approvable`.
 * **Exposure** = share of sampled identities whose *enabled state or plain value* changes, max over features, must be
   ≤ `plan.guardrails.max_exposure_pct`. Variant re-assignment from MV weight changes (A/B) is reported separately
-  (`variant_shift_pct`) and only limited if `max_variant_shift_pct=` is passed (it is not in the plan schema).
+  (`variant_shift_pct`) and only limited if `plan.guardrails.max_variant_shift_pct` is set; the `max_variant_shift_pct=` keyword of `compute_impact` (CLI `--max-variant-shift-pct`) overrides the plan value.
 * **Server-assigned ids**: `PERCENTAGE_SPLIT` hashes on the segment id, a database sequence the preview cannot know
   (verified live: guessed 1, server assigned 12). The preview therefore also evaluates `id_samples` (16) other ids and
   blocks the plan if exposure can exceed the guardrail for any of them. After apply, `verify` reports the plain

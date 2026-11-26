@@ -16,3 +16,8 @@ pgdata/
 # approval secrets / audit state live outside the repo or here (gitignored)
 .approvals/
 state/
+
+# demo recordings: keep the small .cast text files, not the rendered video
+demo-video/.tools/
+demo-video/clips/*.gif
+demo-video/clips/*.mp4
