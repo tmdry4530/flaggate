@@ -154,7 +154,8 @@ Other commands: `fg snapshot [--json]`, `fg show <plan_id> [--json]`, `fg plan -
 `fg submit <plan.json> [--actor ...]`, `fg approve <plan_id> --no-apply`, `fg apply <plan_id> --token-file <f>`,
 `fg audit show -n <N> [--file audit.jsonl]`.
 `fg plan` uses a keyless rule-based planner. Its grammar: `roll out X to N% of <word> users`,
-`a/b test X a vs b [p/q]`, enable / disable, set a value, promote, stop rollout, archive, and a trailing
+`a/b test X a vs b [p/q]` (also `X green 30%, orange 30%, blue 40%`, `X green/orange 50/50`,
+`split X 50/50 between green and orange`, or a description such as `the button color`), enable / disable, set a value, promote, stop rollout, archive, and a trailing
 `with max exposure N%`.
 
 The impact preview needs identities. `scripts/seed.sh` leaves 62 in the environment (checked on the clean-room

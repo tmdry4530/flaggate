@@ -73,7 +73,12 @@ def main() -> int:
     ap.add_argument("--out", default=str(REPO.parent / "fg-agent-e2e" / f"{datetime.now():%Y%m%d-%H%M%S}"))
     ap.add_argument("--evidence", default=str(REPO / "docs/evidence"))
     ap.add_argument("--keep-org", action="store_true")
+    ap.add_argument("--task", help="replace the product request inside the default prompt")
+    ap.add_argument("--prompt-file", help="use this file as the whole Codex prompt (e.g. the demo video's prompt)")
     a = ap.parse_args()
+    prompt = PROMPT if not a.task else PROMPT.replace(TASK, a.task)
+    if a.prompt_file:
+        prompt = Path(a.prompt_file).read_text().strip()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     api = api_url_from_env()
@@ -165,8 +170,8 @@ def main() -> int:
                "-c", f'mcp_servers.flaggate.env={{FG_AGENT_SOCKET="{sock}"}}',
                "-c", "mcp_servers.flaggate.tool_timeout_sec=120",
                "-c", "mcp_servers.flaggate.startup_timeout_sec=30",
-               "-o", str(out / "codex-last-message.txt"), PROMPT]
-        (out / "codex-command.txt").write_text(" ".join(cmd[:-1]) + " <PROMPT>\n\n" + PROMPT + "\n")
+               "-o", str(out / "codex-last-message.txt"), prompt]
+        (out / "codex-command.txt").write_text(" ".join(cmd[:-1]) + " <PROMPT>\n\n" + prompt + "\n")
         mark("codex exec started")
         with open(out / "codex.jsonl", "w") as jl, open(out / "codex.stderr.log", "w") as er:
             cp = subprocess.run(cmd, env={**env, "NO_COLOR": "1"}, stdout=jl, stderr=er, timeout=1200)
@@ -184,7 +189,7 @@ def main() -> int:
         summary = {"tool_calls": [c["tool"] for c in calls],
                    "first_plan_call": pfp[0] if pfp else None,
                    "first_try_success": bool(pfp and pfp[0]["ok"]),
-                   "plan_calls": len(pfp), "approvals": approvals}
+                   "plan_calls": len(pfp), "all_plan_calls": pfp, "approvals": approvals}
         (out / "summary.json").write_text(json.dumps(summary, indent=1))
         mark(f"first plan call ok={summary['first_try_success']} ({len(pfp)} plan call(s)): "
              f"{json.dumps((pfp[0]['arguments'] if pfp else None))}")
@@ -214,6 +219,9 @@ def main() -> int:
         (out / "timeline.json").write_text(json.dumps(timeline, indent=1))
 
     # ---- redacted evidence copy
+    if not a.evidence:
+        print(f"raw logs: {out} (no evidence copy)")
+        return 0
     ev_dir = Path(a.evidence) / f"codex-e2e-{out.name}"
     ev_dir.mkdir(parents=True, exist_ok=True)
     email = creds.get("FS_ADMIN_EMAIL", "")
