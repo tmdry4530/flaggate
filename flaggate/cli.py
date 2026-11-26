@@ -10,9 +10,11 @@
   fg approve <plan_id>              HUMAN ONLY: re-check, type hash prefix + passphrase, sign, apply
   fg apply <plan_id>                apply with a token saved by `fg approve --no-apply`
   fg rollback <plan_id>             run the pre-approved rollback
+  fg promote F --metrics m.csv      A/B winner from metrics -> promote plan (same approval gate)
   fg audit verify | fg audit show   hash-chain check / recent records
 
-FG_HOME (default ~/.flaggate) holds approver/, gatekeeper/ and approvals/. FG_SOCKET overrides the socket path.
+FG_HOME (default ~/.flaggate) holds approver/, gatekeeper/ and approvals/. FG_SOCKET overrides the (human) socket
+path; FG_AGENT_SOCKET the agent socket (no apply/rollback routes; used by fg-mcp).
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ from flaggate.approval import (
 )
 from flaggate.diff import diff_states, render_text
 from flaggate.hooks import render_impact
+from flaggate.metrics import format_elapsed
 from flaggate.plan import Plan, plan_hash
 from flaggate.rollback import rollback_plan
 from flaggate.server import GatekeeperClient, GatekeeperError
@@ -49,6 +52,10 @@ def home() -> Path:
 
 def sock_path() -> Path:
     return Path(os.environ.get("FG_SOCKET", home() / "gatekeeper" / "gk.sock"))
+
+
+def agent_sock_path() -> Path:
+    return Path(os.environ.get("FG_AGENT_SOCKET", home() / "gatekeeper" / "agent.sock"))
 
 
 def _client() -> GatekeeperClient:
@@ -195,17 +202,30 @@ def cmd_gk_start(a: argparse.Namespace) -> None:
         os.environ.pop(k, None)
     if not gk.client.ping():
         sys.exit("cannot reach Flagsmith with the sealed credentials")
-    srv = serve(gk, sock_path())
+    import signal
+    import threading
+
+    lock = threading.Lock()  # one decision at a time across both sockets
+    srv = serve(gk, sock_path(), role="human", lock=lock)
+    agent_srv = serve(gk, agent_sock_path(), role="agent", lock=lock)
+    threading.Thread(target=agent_srv.serve_forever, daemon=True).start()
+    def _stop(*_: Any) -> None:
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, _stop)
     (gdir / "gatekeeper.pid").write_text(str(os.getpid()))
-    print(f"gatekeeper pid={os.getpid()} socket={sock_path()} api={gk.cfg.api_url} project={gk.cfg.project_id} "
-          f"env={gk.cfg.environment} approver={gk.approver_fp} non-dumpable={hardened}", flush=True)
+    print(f"gatekeeper pid={os.getpid()} socket={sock_path()} agent-socket={agent_sock_path()} api={gk.cfg.api_url} "
+          f"project={gk.cfg.project_id} env={gk.cfg.environment} approver={gk.approver_fp} non-dumpable={hardened}",
+          flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        srv.server_close()
-        sock_path().unlink(missing_ok=True)
+        agent_srv.shutdown()
+        for s_, p_ in ((srv, sock_path()), (agent_srv, agent_sock_path())):
+            s_.server_close()
+            p_.unlink(missing_ok=True)
         (gdir / "gatekeeper.pid").unlink(missing_ok=True)
 
 
@@ -314,6 +334,8 @@ def _do_apply(c: GatekeeperClient, plan_id: str, token: str) -> None:
         v = r.get("verify") or {}
         print(f"APPLIED {plan_id}: {r['flagsmith_calls']} Flagsmith calls, two-phase={r.get('two_phase')}, "
               f"prediction matched {v.get('prediction_match')} (audit #{r['audit_seq']})")
+        print(f"manual steps replaced: {r.get('manual_steps_replaced')}   "
+              f"elapsed prompt→applied: {format_elapsed(r.get('elapsed_s'))}")
     else:
         print(f"NOT APPLIED ({r.get('status')}): {r.get('detail') or r.get('error')}; "
               f"compensated={r.get('compensated')} (audit #{r['audit_seq']})")
@@ -336,6 +358,31 @@ def cmd_rollback(a: argparse.Namespace) -> None:
         _fail(e)
     print(f"ROLLED BACK {a.plan_id}: {r['flagsmith_calls']} Flagsmith calls, "
           f"restored base state={r.get('restored_base_state')} (audit #{r['audit_seq']})")
+
+
+def cmd_promote(a: argparse.Namespace) -> None:
+    from flaggate.promote import PromoteError, analysis_dict, analyze, promote_plan, read_metrics
+
+    c = _client()
+    snap = Snapshot.model_validate(c.snapshot()["snapshot"])
+    try:
+        an = analyze(snap, a.feature, read_metrics(Path(a.metrics), a.feature), a.min_exposures, a.alpha)
+        print("METRICS  " + an.summary())
+        for n in an.reasons:
+            print(f"  note: {n}")
+        if a.json:
+            print(json.dumps(analysis_dict(an), indent=2))
+        plan = promote_plan(snap, an, Path(a.metrics), force=a.force)
+    except PromoteError as e:
+        print(f"not promoting: {e}", file=sys.stderr)
+        sys.exit(4)
+    try:
+        b = c.submit(json.loads(plan.model_dump_json(by_alias=True)), actor="fg:promote")
+    except GatekeeperError as e:
+        _fail(e)
+    print()
+    _print_review(b)
+    print(f"\nnext: a human runs `fg approve {b['plan_id']}`")
 
 
 def cmd_audit(a: argparse.Namespace) -> None:
@@ -380,6 +427,11 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("approve"); s.add_argument("plan_id"); s.add_argument("--no-apply", action="store_true"); s.set_defaults(fn=cmd_approve)
     s = sub.add_parser("apply"); s.add_argument("plan_id"); s.add_argument("--token-file"); s.set_defaults(fn=cmd_apply)
     s = sub.add_parser("rollback"); s.add_argument("plan_id"); s.set_defaults(fn=cmd_rollback)
+    s = sub.add_parser("promote", help="pick an A/B winner from metrics.csv and submit a promote plan")
+    s.add_argument("feature"); s.add_argument("--metrics", required=True)
+    s.add_argument("--min-exposures", type=int, default=100); s.add_argument("--alpha", type=float, default=0.05)
+    s.add_argument("--force", action="store_true", help="promote even if not significant (recorded in the plan)")
+    s.add_argument("--json", action="store_true"); s.set_defaults(fn=cmd_promote)
     s = sub.add_parser("audit"); s.add_argument("what", choices=["verify", "show"]); s.add_argument("-n", type=int, default=30)
     s.add_argument("--file", help="audit.jsonl to read directly (offline)"); s.set_defaults(fn=cmd_audit)
     a = ap.parse_args(argv)

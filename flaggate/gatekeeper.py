@@ -23,6 +23,7 @@ from flaggate.executor import ApplyResult, Executor
 from flaggate.hooks import ImpactEngine
 from flaggate.plan import Plan, Target, plan_hash
 from flaggate.planner import plan_from_prompt
+from flaggate.metrics import manual_steps
 from flaggate.rollback import check_delete_feature, generate_rollback, rollback_plan
 from flaggate.state import PlanConflict, Snapshot, env_fingerprint, simulate, state_hash, take_snapshot
 
@@ -209,7 +210,8 @@ class Gatekeeper:
             "impact": plan.impact,
             "approvable": bool((plan.impact or {}).get("approvable", False)),
             "rollback_notes": notes,
-            "manual_steps_replaced": len(plan.ops) + len(changes),
+            "manual_steps_replaced": manual_steps(plan, plan.impact is not None)["manual_steps_replaced"],
+            "manual_steps": manual_steps(plan, plan.impact is not None),
             "status": self.meta(plan.plan_id).get("status"),
         }
 
@@ -321,7 +323,8 @@ class Gatekeeper:
                 ok, why = False, f"re-prediction failed: {e}"
             if not ok:
                 errors = sess.compensate()
-                self._set_meta(plan_id, status="halted")
+                self._set_meta(plan_id, status="halted", result={"ok": False, "status": "halted",
+                                                                 "reason": "guardrails_after_live_ids", "detail": why})
                 rec = self.audit.append(
                     "halted", plan_id=plan_id, plan_hash=h, actor=actor, via="gatekeeper", phase=1,
                     reason="guardrails_after_live_ids",
@@ -341,17 +344,25 @@ class Gatekeeper:
             verify = self.impact.verify(final)
         except Exception as e:  # noqa: BLE001
             verify = {"ok": False, "error": str(e)}
-        self._set_meta(plan_id, status="applied", result_state_hash=result_hash, applied_at=self.clock())
+        now = self.clock()
+        elapsed = round(now - plan.created_at.timestamp(), 1)
+        steps = manual_steps(plan, plan.impact is not None)["manual_steps_replaced"]
         rec = self.audit.append("applied", plan_id=plan_id, plan_hash=h, action="apply", actor=actor,
                                 via="gatekeeper", token_nonce=payload["nonce"], two_phase=bool(p1),
                                 flagsmith_calls=calls, result_state_hash=result_hash,
                                 predicted_max_exposure_pct=final.report.get("max_exposure_pct"),
-                                prediction_match=verify.get("prediction_match"), verify_ok=verify.get("ok"))
-        return {"ok": True, "status": "applied", "two_phase": bool(p1), "flagsmith_calls": len(calls),
-                "result_state_hash": result_hash, "verify": verify, "audit_seq": rec["seq"]}
+                                prediction_match=verify.get("prediction_match"), verify_ok=verify.get("ok"),
+                                manual_steps_replaced=steps, elapsed_s_prompt_to_applied=elapsed)
+        out = {"ok": True, "status": "applied", "two_phase": bool(p1), "flagsmith_calls": len(calls),
+               "result_state_hash": result_hash, "verify": verify, "audit_seq": rec["seq"],
+               "manual_steps_replaced": steps, "elapsed_s": elapsed}
+        self._set_meta(plan_id, status="applied", result_state_hash=result_hash, applied_at=now,
+                       result={k: v for k, v in out.items() if k != "result_state_hash"})
+        return out
 
     def _failed(self, plan_id: str, h: str, actor: str, res: ApplyResult, phase: int) -> dict[str, Any]:
-        self._set_meta(plan_id, status="apply_failed")
+        self._set_meta(plan_id, status="apply_failed", result={"ok": False, "status": "apply_failed",
+                                                              "error": res.error, "compensated": res.compensated})
         rec = self.audit.append("apply_failed", plan_id=plan_id, plan_hash=h, actor=actor, via="gatekeeper",
                                 phase=phase, error=res.error, failed_op=res.failed_op, compensated=res.compensated,
                                 compensation_errors=res.compensation_errors, flagsmith_calls=res.calls)
@@ -395,10 +406,24 @@ class Gatekeeper:
         return {"ok": True, "status": "rolled_back", "flagsmith_calls": len(sess.calls()),
                 "restored_base_state": state_hash(after) == plan.base_state_hash, "audit_seq": rec["seq"]}
 
+    def status(self, plan_id: str) -> dict[str, Any]:
+        """Cheap status for agents (no Flagsmith call): status, hash, approvable, terminal result if any."""
+        plan = self.get_plan(plan_id)
+        m = self.meta(plan_id)
+        events = [r for r in self.audit.records() if r.get("plan_id") in (plan_id, f"{plan_id}.rollback")]
+        last = events[-1] if events else {}
+        return {"plan_id": plan_id, "status": m.get("status"), "plan_hash": m.get("plan_hash"),
+                "approvable": bool((plan.impact or {}).get("approvable", False)),
+                "manual_steps_replaced": manual_steps(plan, plan.impact is not None)["manual_steps_replaced"],
+                "result": m.get("result"),
+                "last_event": {k: last.get(k) for k in ("seq", "ts", "event", "reason", "actor", "prediction_match")
+                               if k in last},
+                "next": ("waiting for a human to run `fg approve %s`" % plan_id) if m.get("status") == "submitted" else None}
+
     # ------------------------------------------------------------------ planner / audit
     def plan_from_prompt(self, prompt: str, actor: str = "planner:rules") -> dict[str, Any]:
         snap = self.snapshot()
-        plan = plan_from_prompt(prompt, snap, author=actor)
+        plan = plan_from_prompt(prompt, snap, author="planner:rules")
         return self.submit(plan, actor=actor)
 
     def audit_verify(self) -> dict[str, Any]:
