@@ -192,3 +192,30 @@ def test_audit_chain_verifies_after_mixed_events(env):
     rec = json.loads(lines[1]); rec["reason"] = "nothing to see"; lines[1] = json.dumps(rec)
     path.write_text("\n".join(lines) + "\n")
     assert env.gk.audit_verify()["ok"] is False
+
+
+def test_submitted_delete_feature_refused(env):
+    from flaggate.plan import DeleteFeatureOp
+
+    plan = plan_from_prompt("disable new_checkout", env.world.snapshot())
+    plan = plan.model_copy(update={"ops": [DeleteFeatureOp(op="delete_feature", feature="new_checkout")]})
+    assert refused_reason(env.gk.submit, plan) == "delete_feature_not_allowed"
+    assert last_event(env)["reason"] == "delete_feature_not_allowed"
+
+
+def test_rollback_with_forged_delete_feature_refused(env):
+    """Even a correctly signed rollback is refused if its delete_feature targets a pre-existing feature."""
+    from flaggate.plan import DeleteFeatureOp
+
+    plan, _ = submitted(env, "roll out dark_mode to 10% of pro users")
+    assert env.gk.apply(plan.plan_id, env.token(plan))["ok"]
+    # tamper: rewrite stored plan + meta hash consistently (simulates a compromised state dir)
+    evil = plan.model_copy(update={"rollback": plan.rollback.model_copy(update={"ops": [
+        *plan.rollback.ops, DeleteFeatureOp(op="delete_feature", feature="new_checkout")]}), "plan_hash": None})
+    from flaggate.plan import plan_hash as ph
+    evil = evil.model_copy(update={"plan_hash": ph(evil)})
+    env.gk._write_json(env.gk._plan_path(plan.plan_id), json.loads(evil.model_dump_json(by_alias=True)))
+    env.gk._set_meta(plan.plan_id, plan_hash=ph(evil))
+    tok = env.token(rollback_plan(evil), action="rollback")
+    assert refused_reason(env.gk.rollback, plan.plan_id, tok) == "delete_feature_not_allowed"
+    assert "new_checkout" in env.world.snap.features

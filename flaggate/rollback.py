@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from flaggate.plan import (
     AddVariantOp,
     ArchiveFeatureOp,
+    DeleteFeatureOp,
     CreateFeatureOp,
     CreateMvFeatureOp,
     CreateSegmentOp,
@@ -39,11 +40,8 @@ def inverse_ops(state: Snapshot, op: Op, refs: Refs) -> tuple[list[Op], list[str
     """Ops that undo ``op`` when run right after it, computed from the state *before* ``op``."""
     notes: list[str] = []
     if isinstance(op, (CreateFeatureOp, CreateMvFeatureOp)):
-        # v1 has no delete_feature: neutralise (disable) then archive.
-        value = op.initial_value
-        notes.append(f"{op.name}: rollback disables + archives the new feature (v1 has no delete_feature)")
-        return [SetFlagOp(op="set_flag", feature=op.name, enabled=False, value=value),
-                ArchiveFeatureOp(op="archive_feature", feature=op.name)], notes
+        # the feature did not exist before this plan, so its rollback deletes it (delete_feature is rollback-only)
+        return [DeleteFeatureOp(op="delete_feature", feature=op.name)], notes
     if isinstance(op, AddVariantOp):
         name = refs.feature(state, op.feature)
         f = state.features[name]
@@ -89,7 +87,23 @@ def inverse_ops(state: Snapshot, op: Op, refs: Refs) -> tuple[list[Op], list[str
         name = refs.feature(state, op.feature)
         notes.append(f"{name}: archive_feature cannot be undone in v1 (no unarchive op)")
         return [], notes
+    if isinstance(op, DeleteFeatureOp):
+        raise ValueError("delete_feature is rollback-only; it cannot appear in a forward plan")
     raise ValueError(f"unsupported op {op!r}")  # pragma: no cover
+
+
+def created_features(plan: Plan) -> set[str]:
+    return {op.name for op in plan.ops if isinstance(op, (CreateFeatureOp, CreateMvFeatureOp))}
+
+
+def check_delete_feature(plan: Plan) -> None:
+    """delete_feature may only undo a feature created by ``plan`` itself. Raises ValueError otherwise."""
+    if any(isinstance(op, DeleteFeatureOp) for op in plan.ops):
+        raise ValueError("delete_feature is rollback-only; it cannot appear in a submitted plan")
+    created = created_features(plan)
+    for op in plan.rollback.ops:
+        if isinstance(op, DeleteFeatureOp) and op.feature not in created:
+            raise ValueError(f"delete_feature {op.feature!r}: only features created by this plan can be deleted")
 
 
 def generate_rollback(before: Snapshot, ops: list[Op]) -> RollbackResult:

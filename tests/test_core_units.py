@@ -123,14 +123,33 @@ def test_rollback_restores_state_except_new_features(prompt):
     assert state_hash(restored) == state_hash(snap)
 
 
-def test_rollback_of_created_feature_disables_and_archives():
+def test_rollback_of_created_feature_deletes_it():
     snap = demo_snapshot()
     plan = plan_from_prompt("roll out dark_mode to 10% of pro users", snap)
     rb = generate_rollback(snap, list(plan.ops))
-    assert [o.op for o in rb.ops] == ["delete_segment_override", "delete_segment", "set_flag", "archive_feature"]
-    f = simulate(simulate(snap, plan.ops), rb.ops).features["dark_mode"]
-    assert f.archived and not f.env.enabled and not f.overrides
-    assert any("archives" in n for n in rb.irreversible)
+    assert [o.op for o in rb.ops] == ["delete_segment_override", "delete_segment", "delete_feature"]
+    assert state_hash(simulate(simulate(snap, plan.ops), rb.ops)) == state_hash(snap)
+    assert not rb.irreversible
+
+
+def test_delete_feature_rules():
+    from flaggate.plan import DeleteFeatureOp
+    from flaggate.rollback import check_delete_feature
+
+    snap = demo_snapshot()
+    plan = plan_from_prompt("roll out dark_mode to 10% of pro users", snap)
+    plan = plan.model_copy(update={"rollback": plan.rollback.model_copy(
+        update={"ops": generate_rollback(snap, list(plan.ops)).ops})})
+    check_delete_feature(plan)  # generated rollback of a created feature: allowed
+    bad_rb = plan.model_copy(update={"rollback": plan.rollback.model_copy(
+        update={"ops": [DeleteFeatureOp(op="delete_feature", feature="new_checkout")]})})
+    with pytest.raises(ValueError, match="only features created by this plan"):
+        check_delete_feature(bad_rb)
+    bad_fwd = plan.model_copy(update={"ops": [DeleteFeatureOp(op="delete_feature", feature="new_checkout")]})
+    with pytest.raises(ValueError, match="rollback-only"):
+        check_delete_feature(bad_fwd)
+    with pytest.raises(ValueError, match="rollback-only"):
+        generate_rollback(snap, list(bad_fwd.ops))
 
 
 def test_rollback_plan_is_deterministic():

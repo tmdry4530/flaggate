@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from flaggate.plan import (
     AddVariantOp,
     ArchiveFeatureOp,
+    DeleteFeatureOp,
     CreateFeatureOp,
     CreateMvFeatureOp,
     CreateSegmentOp,
@@ -314,6 +315,9 @@ def apply_op(state: Snapshot, op: Op, refs: Refs) -> None:
         if state.features[name].archived:
             raise PlanConflict(f"feature {name!r} is already archived")
         state.features[name].archived = True
+    elif isinstance(op, DeleteFeatureOp):
+        name = refs.feature(state, op.feature)
+        del state.features[name]
     else:  # pragma: no cover - the Op union is closed
         raise PlanConflict(f"unsupported op {getattr(op, 'op', op)!r}")
 

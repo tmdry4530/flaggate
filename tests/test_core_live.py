@@ -124,3 +124,21 @@ def test_mid_apply_failure_is_compensated(world):
     assert rec["event"] == "apply_failed" and rec["compensated"] is True and rec["phase"] == 2
     methods = [c["method"] for c in rec["flagsmith_calls"]]
     assert methods.count("POST") == 2 and methods.count("DELETE") == 2  # created feature + segment, both removed
+
+
+def test_rollback_deletes_newly_created_feature(world):
+    gk = make_gk(world)
+    base = gk.snapshot()
+    b = gk.submit(plan_from_prompt("roll out dark_mode to 100% of pro users", base))
+    plan = gk.get_plan(b["plan_id"])
+    assert [o.op for o in plan.rollback.ops][-1] == "delete_feature"
+    rb_tok = sign_token(world["key"], make_payload(rollback_plan(plan), "rollback", "it-human", 60))
+    assert gk.apply(plan.plan_id, sign_token(world["key"], make_payload(plan, "apply", "it-human", 15)))["ok"]
+    assert "dark_mode" in gk.snapshot().features
+    rr = gk.rollback(plan.plan_id, rb_tok)
+    assert rr["ok"] and rr["restored_base_state"], rr
+    names = [f["name"] for f in world["client"].list_all(f"/api/v1/projects/{world['lp'].project_id}/features/")]
+    assert "dark_mode" not in names
+    # a fresh plan can create the same name again (Flagsmith really freed it)
+    again = gk.submit(plan_from_prompt("roll out dark_mode to 100% of pro users", gk.snapshot()))
+    assert again["plan"]["ops"][0]["op"] == "create_feature"

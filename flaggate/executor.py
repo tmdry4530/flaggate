@@ -17,6 +17,7 @@ from flaggate.client import FlagsmithClient
 from flaggate.plan import (
     AddVariantOp,
     ArchiveFeatureOp,
+    DeleteFeatureOp,
     CreateFeatureOp,
     CreateMvFeatureOp,
     CreateSegmentOp,
@@ -193,6 +194,16 @@ class Executor:
             fid = state.features[name].id
             c.patch(self._feat(p, fid), {"is_archived": True})
             return lambda: c.patch(self._feat(p, fid), {"is_archived": False})
+
+        if isinstance(op, DeleteFeatureOp):
+            name = refs.feature(before, op.feature)
+            fid = before.features[name].id
+            c.delete(self._feat(p, fid))
+
+            def undo_delete_feature() -> None:
+                raise RuntimeError(f"feature {name!r} was deleted and cannot be restored automatically")
+
+            return undo_delete_feature
 
         raise ValueError(f"unsupported op {op!r}")  # pragma: no cover
 

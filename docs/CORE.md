@@ -33,8 +33,10 @@ counts as drift (strict on purpose: re-plan, it is one command).
 * `fg approve` refuses unless stdin and stdout are TTYs: approvals cannot be piped. A process that allocates a
   pty can still fake a TTY; the real boundary is the approver passphrase (encrypted key) and that the agent never
   holds a Flagsmith key.
-* v1 ops cannot delete a feature/variant or unarchive: rollback of `create_feature` disables + archives it, of
-  `add_variant` sets it to 0%, and `archive_feature` itself is irreversible (shown on the approval screen).
+* Rollback of a feature the plan created is `delete_feature` (rollback-only op: refused in submitted plans and,
+  at rollback time, for any feature the forward plan did not create). Still non-reversible and shown as such on the
+  approval screen: `archive_feature` (no unarchive op) and `add_variant` (rolled back to 0%, no delete_variant).
+  If a rollback fails after a `delete_feature`, compensation cannot re-create the feature and says so.
 
 ## Reproduce
 ```bash
