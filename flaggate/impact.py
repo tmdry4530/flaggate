@@ -369,18 +369,54 @@ def _describe_flip(f: Mapping[str, Any]) -> str:
     return ", ".join(parts)
 
 
-def render_text(report: Mapping[str, Any], *, width: int = 78) -> str:
+def _who_changes_line(report: Mapping[str, Any]) -> str:
     n = report["sample"]["n"]
-    lines = [f"IMPACT PREVIEW  plan {report['plan_id']}",
-             f"engine: {report['engine']}   sample: {n} identities ({report['sample']['source']})",
-             f"environment document fetched {report['env_document_at']}", ""]
     if not report["evaluated"]:
-        lines.append("Could not evaluate the plan; no outcome preview available.")
-    elif not report["flips"]:
-        lines.append(f"WHO CHANGES: nobody ({n} of {n} identities see exactly what they see today)")
+        return "WHO CHANGES: could not evaluate"
+    if not report["flips"]:
+        return f"WHO CHANGES: nobody ({n} of {n} identities see exactly what they see today)"
+    return (f"WHO CHANGES: {report['changed']} of {n} identities ({_pct(report['changed'], n):g}%); "
+            f"{report['unchanged']} unchanged")
+
+
+def _guardrails_line(report: Mapping[str, Any]) -> str:
+    """One-line guardrail status for the demo-screen summary."""
+    if not report["evaluated"]:
+        return "GUARDRAILS: not evaluated"
+    g = report["guardrails"]
+    limit = g["max_exposure_pct"]
+    parts: list[str] = []
+    sens = report.get("id_sensitivity") or {}
+    reach = (sens.get("exposure_pct") or {}).get("max")
+    # A plan is EXCEEDED if the guessed exposure, or the worst-case over unknown segment ids, is over the limit.
+    exposure_ok = report["max_exposure_pct"] <= limit and (reach is None or reach <= limit)
+    mark = "OK" if exposure_ok and not g["violations"] else "EXCEEDED"
+    if reach is not None and reach > limit:
+        parts.append(f"max exposure {report['max_exposure_pct']:g}% ≤ {limit:g}% "
+                     f"but could reach {reach:g}% depending on segment id  [{mark}]")
     else:
-        lines.append(f"WHO CHANGES: {report['changed']} of {n} identities ({_pct(report['changed'], n):g}%); "
-                     f"{report['unchanged']} unchanged")
+        cmp = "≤" if report["max_exposure_pct"] <= limit else ">"
+        feat = f"  ({report['max_exposure_feature']})" if report["max_exposure_feature"] else ""
+        parts.append(f"max exposure {report['max_exposure_pct']:g}% {cmp} {limit:g}%  [{mark}]{feat}")
+    if g["max_variant_shift_pct"] is not None:
+        ok = report["max_variant_shift_pct"] <= g["max_variant_shift_pct"]
+        parts.append(f"variant shift {report['max_variant_shift_pct']:g}% "
+                     f"{'≤' if ok else '>'} {g['max_variant_shift_pct']:g}%  [{'OK' if ok else 'EXCEEDED'}]")
+    return "GUARDRAILS: " + "; ".join(parts)
+
+
+def render_text(report: Mapping[str, Any], *, width: int = 78) -> str:
+    """Demo-screen text: a 3-line summary (WHO CHANGES / GUARDRAILS / VERDICT), then the details."""
+    n = report["sample"]["n"]
+    verdict = "APPROVABLE" if report["approvable"] else "NOT APPROVABLE"
+    lines = [_who_changes_line(report), _guardrails_line(report), f"VERDICT: {verdict}", "",
+             f"IMPACT PREVIEW  plan {report['plan_id']}",
+             f"engine: {report['engine']}   sample: {n} identities ({report['sample']['source']})",
+             f"environment document fetched {report['env_document_at']}"]
+    if not report["evaluated"]:
+        lines += ["", "Could not evaluate the plan; no outcome preview available."]
+    elif report["flips"]:
+        lines.append("")
         for f in report["flips"]:
             tag = {"toggle": "toggle", "value": "value", "variant": "variant"}[f["kind"]]
             via = ", ".join(f"{k}: {v}" for k, v in f["by_segment"].items())
@@ -416,9 +452,9 @@ def render_text(report: Mapping[str, Any], *, width: int = 78) -> str:
         e = sens["exposure_pct"]
         lines.append(f"  segment id still unknown to the server: over {sens['candidates']} possible ids, exposure "
                      f"ranges {e['min']:g}%–{e['max']:g}% ({', '.join(sens['segments'])})")
-    verdict = "APPROVABLE" if report["approvable"] else "NOT APPROVABLE"
-    lines += ["", f"VERDICT: {verdict}"]
-    lines += [f"  ✗ {b}" for b in report["blockers"]]
+    if report["blockers"]:
+        lines += ["", "BLOCKERS"]
+        lines += [f"  ✗ {b}" for b in report["blockers"]]
     if report["warnings"] or report["assumptions"] or report["notes"]:
         lines += ["", "NOTES"]
         lines += [f"  ! {w}" for w in report["warnings"]]

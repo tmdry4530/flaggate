@@ -10,7 +10,7 @@ from flaggate.impact import compute_impact, attach_impact
 from flaggate.verify import verify_live
 
 res = compute_impact(env_doc, plan, identities)     # pure; flagsmith-flag-engine before/after
-print(res.render())                                  # who flips, per-segment, guardrails, verdict
+print(res.render())                                  # 3-line summary (WHO CHANGES / GUARDRAILS / VERDICT), then details
 res.approvable                                       # False on guardrail breach / unappliable plan / empty sample
 plan = attach_impact(plan, res)                      # plan.impact = res.report; plan_hash unchanged
 ...apply...
@@ -36,11 +36,15 @@ verify_live(res, api_url=..., environment_key=..., server_key=...).summary()   #
   document, `repredict_with_live_ids(res, live_doc)`, re-check `approvable` against the approved numbers, then apply overrides/weights
   and verify against the re-prediction (`scripts/impact_live_demo.py` does exactly this and ends with `prediction matched 60/60`).
   Note the Admin API rejects an empty condition `property` (needs null) for PERCENTAGE_SPLIT; the plan schema uses `""`.
-* **Verify** uses the official SDK (`flagsmith==6.3.0`, remote evaluation). Errors count as mismatches (fail closed).
-  Non-transient calls store the given traits on the identity; pass `transient=True` to avoid that.
+* **Text output** (`res.render()`, the default CLI): a 3-line summary for the demo screen
+  (`WHO CHANGES: …` / `GUARDRAILS: …` / `VERDICT: APPROVABLE|NOT APPROVABLE`), then the flip list, segments,
+  full guardrail breakdown, blockers and notes. `--json` still prints the unchanged JSON report (no summary lines).
+* **Verify** uses the official SDK (`flagsmith==6.3.0`, remote evaluation) with `transient=True`, so it never
+  stores identity traits. Errors count as mismatches (fail closed). `sdk_live_eval(..., transient=False)` remains
+  available for intentional seeding only.
 
-CLI: `python -m flaggate.impact --plan P --env-doc D --identities I.csv` (or `--live --identities-live`),
-`python -m flaggate.verify --plan P --before-env-doc D --identities I.csv --live`.
+CLI: `python -m flaggate.impact --plan P --env-doc D --identities I.csv` (or `--live --identities-live`; add `--json`
+for the report), `python -m flaggate.verify --plan P --before-env-doc D --identities I.csv --live`.
 Credentials: `FS_*` env vars or the runtime `local.env` (`FLAGGATE_ENV_FILE` / `FLAGSMITH_RUNTIME`); never printed.
 
 ## Tests

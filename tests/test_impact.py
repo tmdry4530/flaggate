@@ -177,6 +177,24 @@ def test_text_output_is_human_readable(env_doc, plan, identities):
                    "GUARDRAILS", "VERDICT: APPROVABLE", "assumption:", "e.g. user-"):
         assert needle in text, needle
     assert "FIXTURE_ENV_KEY" not in text
+    head = text.splitlines()[:3]
+    assert head[0].startswith("WHO CHANGES:")
+    assert head[1].startswith("GUARDRAILS:") and "[OK]" in head[1]
+    assert head[2] == "VERDICT: APPROVABLE"
+
+
+def test_json_cli_prints_the_report_not_the_text():
+    import json, subprocess, sys
+    from pathlib import Path as P
+    out = subprocess.check_output(
+        [sys.executable, "-m", "flaggate.impact", "--plan", "tests/fixtures/plan_demo.json",
+         "--env-doc", "tests/fixtures/env_document_demo.json",
+         "--identities", "tests/fixtures/identities_200.csv", "--json"],
+        cwd=P(__file__).resolve().parents[1], text=True)
+    assert not out.startswith("WHO CHANGES:")
+    report = json.loads(out)
+    assert report["plan_id"] == "pl_20261128_7f3a" and report["sample"]["n"] == 200
+    assert "approvable" in report and "flips" in report
 
 
 def test_impact_in_plan_does_not_change_plan_hash(env_doc, plan, identities):

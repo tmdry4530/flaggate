@@ -138,12 +138,14 @@ def compare_predictions(predictions: Mapping[str, Mapping[str, Mapping[str, Any]
     return VerifyResult(matched=matched, total=len(identities), mismatches=mismatches)
 
 
-def sdk_live_eval(api_url: str, environment_key: str, *, transient: bool = False,
+def sdk_live_eval(api_url: str, environment_key: str, *, transient: bool = True,
                   timeout: float = 15.0) -> LiveEval:
     """Live evaluation through the official Python SDK (flagsmith 6.3.0, remote evaluation).
 
-    ``environment_key`` is the environment's client-side key. With ``transient=False`` (default) the
-    traits are stored on the identity like any SDK call would; ``transient=True`` leaves no trace.
+    ``environment_key`` is the environment's client-side key. ``transient=True`` (the default) evaluates
+    with the given traits for this call only and does not store them on the identity. Pass
+    ``transient=False`` only when the caller *intends* to persist traits (e.g. seeding a fixture).
+    Verification always uses the default.
     """
     from flagsmith import Flagsmith
 
@@ -254,9 +256,13 @@ def verify_prediction(impact: ImpactResult, live_eval: LiveEval, *,
 
 
 def verify_live(impact: ImpactResult, *, api_url: str, environment_key: str, server_key: str | None = None,
-                transient: bool = False) -> VerifyResult:
+                transient: bool = True) -> VerifyResult:
     """Convenience: SDK remote evaluation against ``api_url``; fetches the live environment document for
-    diagnosis only when something mismatched and ``server_key`` is given."""
+    diagnosis only when something mismatched and ``server_key`` is given.
+
+    Uses ``transient=True`` so verification never stores identity traits. Pass ``transient=False`` only
+    if the caller intentionally wants the SDK to persist them (not the verification path).
+    """
     from . import flagsmith_io as fio
 
     live_eval = sdk_live_eval(api_url, environment_key, transient=transient)
@@ -279,7 +285,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--before-env-doc", required=True, help="environment document captured BEFORE apply")
     ap.add_argument("--identities", required=True, help="identities CSV/JSON used for the preview")
     ap.add_argument("--live", action="store_true", required=True, help="query the live Flagsmith (env/.env creds)")
-    ap.add_argument("--transient", action="store_true", help="do not persist traits on identities")
     args = ap.parse_args(argv)
     try:
         creds = fio.load_credentials()
@@ -289,7 +294,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             before = json.load(fh)
         impact = compute_impact(before, plan, load_identities(args.identities), sample_source=args.identities)
         res = verify_live(impact, api_url=fio.api_url_from_env(), environment_key=creds["FS_ENV_KEY"],
-                          server_key=creds.get("FS_SERVER_KEY"), transient=args.transient)
+                          server_key=creds.get("FS_SERVER_KEY"))
     except KeyError as exc:
         print(f"missing credential {exc.args[0]}", file=sys.stderr)
         return 2

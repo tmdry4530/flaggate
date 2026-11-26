@@ -51,7 +51,7 @@ def test_real_env_document_preview_apply_and_verify(live):
     """preview on the real env document -> apply through the Admin API -> SDK read-back vs prediction."""
     idents = _identities()
     # make the identities exist on the server with their traits (what the identities API would list)
-    seed = sdk_live_eval(API, live.env_key)
+    seed = sdk_live_eval(API, live.env_key, transient=False)
     for i in idents:
         seed(i)
 
@@ -93,7 +93,7 @@ def _plan_noop(plan: Plan) -> Plan:
 
 def test_identities_api_listing_returns_traits(live):
     idents = _identities(5)
-    seed = sdk_live_eval(API, live.env_key)
+    seed = sdk_live_eval(API, live.env_key, transient=False)
     for i in idents:
         seed(i)
     got = {i.identifier: dict(i.traits) for i in fetch_identities(API, live.admin.key, live.env_key, limit=50)}
@@ -116,5 +116,37 @@ def test_verify_detects_a_plan_that_was_not_applied():
         out = verify_live(res, api_url=API, environment_key=lp.env_key, server_key=lp.server_key)
         assert not out.ok and out.matched < out.total
         assert any("not present in the live environment document" in x for x in out.diagnosis)
+    finally:
+        lp.delete()
+
+
+
+def test_verify_does_not_persist_identity_traits():
+    """verify_live (default transient=True) evaluates with the given traits but must not store them.
+
+    Uses a throw-away organisation (never touches 'Toggle Wars Demo'). A control call with
+    ``transient=False`` proves the Admin API *would* show persisted traits if verification had stored them.
+    """
+    import uuid
+
+    lp = LiveProject(API, CREDS["FS_ADMIN_EMAIL"], CREDS["FS_ADMIN_PASSWORD"]).create()
+    try:
+        marker = f"must-not-persist-{uuid.uuid4().hex}"
+        probe = Identity(f"verify-transient-{uuid.uuid4().hex[:12]}", {"plan": "pro", "marker": marker})
+        control = Identity(f"verify-persist-{uuid.uuid4().hex[:12]}", {"plan": "pro", "marker": marker})
+
+        doc = fetch_environment_document(API, lp.server_key)
+        # a real verify_live call (the public verification path), not just the helper
+        preview = compute_impact(doc, _plan(max_exposure_pct=100), [probe], sample_source="trait-persistence probe")
+        verify_live(preview, api_url=API, environment_key=lp.env_key)
+        sdk_live_eval(API, lp.env_key, transient=False)(control)
+
+        listed = {i.identifier: dict(i.traits)
+                  for i in fetch_identities(API, lp.admin.key, lp.env_key, limit=50)}
+        assert listed.get(control.identifier, {}).get("marker") == marker, (
+            "control failed: Admin API did not persist traits for transient=False (test is inconclusive)")
+        probe_traits = listed.get(probe.identifier, {})
+        assert "marker" not in probe_traits
+        assert probe_traits.get("plan") is None
     finally:
         lp.delete()

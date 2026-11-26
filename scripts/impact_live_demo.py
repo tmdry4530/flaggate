@@ -28,7 +28,7 @@ api, creds = api_url_from_env(), load_credentials()
 lp = LiveProject(api, creds["FS_ADMIN_EMAIL"], creds["FS_ADMIN_PASSWORD"]).create()
 try:
     idents = [Identity(f"user-{i}", {"plan": "pro" if i % 5 < 2 else "free", "country": "KR"}) for i in range(60)]
-    seed = sdk_live_eval(api, lp.env_key)
+    seed = sdk_live_eval(api, lp.env_key, transient=False)
     for i in idents:
         seed(i)
     plan = Plan.model_validate_json((ROOT / "tests/fixtures/plan_demo.json").read_text())
