@@ -8,10 +8,15 @@ dependencies = [
     # impact.py / verify.py: the SDK (pinned: the live-verify target) and the engine it evaluates with
     "flagsmith==6.3.0",
     "flagsmith-flag-engine>=11.1,<12",
+    # approval tokens (Ed25519) + gatekeeper secrets at rest (scrypt + AES-GCM)
+    "cryptography>=42",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+
+[project.scripts]
+fg = "flaggate.cli:main"
 
 [build-system]
 requires = ["hatchling"]
