@@ -24,6 +24,13 @@ CODEX_FIRST = ("roll out new_checkout to 25% of pro users with max exposure 20%;
                "vs orange vs blue [30/30/40] with max exposure 20%")
 CODEX_SECOND = ("roll out new_checkout to 25% of pro users; a/b test checkout_button_color green vs orange vs blue "
                 "30/30/40; keeping total exposure under 20% of all users")
+# verbatim: Codex CLI's first plan_from_prompt calls for the same demo prompt after this change (run1, run2)
+CODEX_AFTER = [
+    "roll out new_checkout to 25% of pro users and a/b test checkout_button_color green 30%, orange 30%, blue 40%, "
+    "keeping total exposure under 20% of users",
+    "roll out new_checkout to 25% of pro users; a/b test checkout_button_color green 30%, orange 30%, blue 40%; "
+    "keeping total exposure under 20% of all users",
+]
 # verbatim: EL's examples
 EL_AB = "A/B test checkout_button_color green 30%, orange 30%, blue 40%"
 EL_COMBINED = ("roll out new_checkout to 25% of pro users and A/B test the button color green/orange 50/50, keeping "
@@ -51,6 +58,7 @@ def test_demo_task_is_verbatim_from_scenes_py():
 
 @pytest.mark.parametrize("prompt, weights", [
     (DEMO_TASK, W_30_30_40), (DEMO_FALLBACK, W_30_30_40), (CODEX_FIRST, W_30_30_40), (CODEX_SECOND, W_30_30_40),
+    *[(c, W_30_30_40) for c in CODEX_AFTER],
     (EL_COMBINED, W_50_50),
 ])
 def test_rollout_plus_ab_sentences(prompt, weights):
