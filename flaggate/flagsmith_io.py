@@ -11,6 +11,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -79,19 +80,24 @@ def fetch_identities(api_url: str, admin_api_key: str, env_key: str, *, limit: i
     """Identities + traits through the Admin API (needs an Api-Key; traits are one call per identity)."""
     headers = {"Authorization": f"Api-Key {admin_api_key}"}
     base = f"/api/v1/environments/{urllib.parse.quote(env_key)}/identities/"
-    out: list[Identity] = []
+    rows: list[dict[str, Any]] = []
     page = 1
-    while limit is None or len(out) < limit:
+    while limit is None or len(rows) < limit:
         data = _request(api_url, f"{base}?page={page}&page_size={page_size}", headers)
-        for row in data["results"]:
-            traits = _request(api_url, f"{base}{row['id']}/traits/?page_size=100", headers)["results"]
-            out.append(Identity(row["identifier"], {t["trait_key"]: _trait_value(t) for t in traits}))
-            if limit is not None and len(out) >= limit:
-                break
+        rows.extend(data["results"])
         if not data.get("next"):
             break
         page += 1
-    return out
+    if limit is not None:
+        rows = rows[:limit]
+
+    def with_traits(row: dict[str, Any]) -> Identity:
+        traits = _request(api_url, f"{base}{row['id']}/traits/?page_size=100", headers)["results"]
+        return Identity(row["identifier"], {t["trait_key"]: _trait_value(t) for t in traits})
+
+    # one traits call per identity: run them concurrently (order is preserved by map)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        return list(pool.map(with_traits, rows))
 
 
 def _trait_value(t: dict[str, Any]) -> Any:

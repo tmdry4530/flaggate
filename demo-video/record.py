@@ -6,7 +6,7 @@
 
 What it does (all local, no accounts, no API keys, nothing leaves the box):
   1. creates a THROW-AWAY Flagsmith organisation/project/environment (never touches 'Toggle Wars Demo'),
-     seeds 60 identities, creates an approver key and a gatekeeper in a temp FG_HOME (/tmp/fgdemo-*);
+     seeds 200 identities, creates an approver key and a gatekeeper in a temp FG_HOME (/tmp/fgdemo-*);
   2. runs demo-video/scenario.py under `asciinema rec` (real `fg` commands, typed like a human);
   3. cast -> gif (agg) -> mp4 (ffmpeg, H.264 yuv420p);
   4. tears everything down: stops the gatekeeper, deletes the throw-away organisation and the temp dir.
@@ -60,6 +60,7 @@ def main() -> int:
     ap.add_argument("scenario", nargs="?", default="test-clip")
     ap.add_argument("--speed", type=float, default=1.0, help="agg playback speed")
     ap.add_argument("--idle", type=float, default=2.0, help="agg: cap idle gaps to N seconds")
+    ap.add_argument("--identities", type=int, default=200, help="identities seeded into the throw-away org")
     ap.add_argument("--no-render", action="store_true", help="record the .cast only")
     args = ap.parse_args()
 
@@ -80,8 +81,9 @@ def main() -> int:
     try:
         lp.create()
         seed = sdk_live_eval(api, lp.env_key, transient=False)
-        for i in range(60):
-            seed(Identity(f"user-{i}", {"plan": "pro" if i % 5 < 2 else "free", "country": "KR"}))
+        for i in range(args.identities):
+            seed(Identity(f"user-{i}", {"plan": "pro" if i % 5 < 2 else "free",
+                                        "country": ("KR", "US", "DE")[i % 3]}))
         env_name = lp.admin.results(f"/api/v1/environments/?project={lp.project_id}")[0]["name"]
         envfile = tmp / "runtime.env"
         fd = os.open(envfile, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

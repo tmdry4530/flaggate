@@ -41,7 +41,7 @@ demo-video/setup-tools.sh                       # installs/checks asciinema, agg
 ```
 
 What `record.py` does: creates a **throw-away Flagsmith organisation** (the "Toggle Wars Demo" environment is
-never touched), seeds 60 identities, creates a throw-away approver key and gatekeeper under `/tmp/fgdemo-*`, runs
+never touched), seeds 200 identities (`--identities N`), creates a throw-away approver key and gatekeeper under `/tmp/fgdemo-*`, runs
 `demo-video/scenario.py` inside `asciinema rec` with simulated typing, renders, and then deletes the organisation,
 the temp directory and the plaintext env file. Output goes to `demo-video/clips/<scenario>.{cast,gif,mp4}`.
 That folder is **not** `dist/`, `out/` or `build/` (those are wiped when the box is replaced). The `.cast` files

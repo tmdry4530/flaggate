@@ -19,48 +19,73 @@ every step is rolled back or audited through the same gate.
 ## 30-second demo
 
 Real output from `demo-video/record.py readme-demo` (recorded 2026-11-26 against a throw-away organisation on
-a local Flagsmith v2.295.2; 60 sampled identities). Long blocks are shortened with `[...]`. The full text is in
+a local Flagsmith v2.295.2; 200 sampled identities). Long blocks are shortened with `[...]`. The full text is in
 `demo-video/clips/readme-demo.cast`.
 
 ```text
-$ fg plan "roll out new_checkout to 10% of pro users; a/b test checkout_button_color green vs orange 50/50"
+$ fg plan "roll out new_checkout to 25% of pro users; a/b test checkout_button_color green vs orange 50/50"
 
-plan      pl_20261126_dd49
-hash      1d2d03b19163ce37efb964eed60dc8ddb1eaa38f615f309fbb6dbcfb8187ed35
-rollback  48e1700e3cbfba6c08742849b00a4b749ec3babfa679d5f9e43c3ecb76a34fd8  (pre-approved together with apply)
+plan      pl_20261126_32b1
+hash      b1eda47c841150ea5daf0ddb468ecca1e6d54a2f2e38b5d346284a2c63055673
+rollback  2918a55876bc47040353f5799b351490c20b7420f4bb4c29b38f803adbe8eddf  (pre-approved together with apply)
 
 DIFF (plan vs live Flagsmith state)
-  + segments/new_checkout_rollout_pro  plan == pro AND 10% split
+  + segments/new_checkout_rollout_pro  plan == pro AND 25% split
   ~ features/checkout_button_color/env/weights  blue 34%, green 33%, orange 33% -> blue 0%, green 50%, orange 50%
   + features/new_checkout/overrides/new_checkout_rollout_pro  {enabled: on, value: null, priority: 0}
 
 IMPACT (Flagsmith flag engine on the environment document)
-WHO CHANGES: 30 of 60 identities (50%); 30 unchanged
-GUARDRAILS: max exposure 0% ≤ 100%  [OK]  (checkout_button_color)
+WHO CHANGES: 105 of 200 identities (52.5%); 95 unchanged
+GUARDRAILS: max exposure 9% ≤ 100%  [OK]  (new_checkout)
 VERDICT: APPROVABLE
+
+IMPACT PREVIEW  plan pl_20261126_32b1
+engine: flagsmith-flag-engine 11.1.2   sample: 200 identities (flagsmith identities API (≤200))
+environment document fetched 2026-11-26T11:58:47+09:00
+
+  - checkout_button_color  value "blue" → "orange"   62/200 (31%)  [variant]
+      via (multivariate split): 62
+      e.g. user-3, user-4, user-9, user-14, user-23, user-25, user-31, user-34, user-35, user-37, … (+52 more)
+  - checkout_button_color  value "orange" → "green"   38/200 (19%)  [variant]
+      via (multivariate split): 38
+      e.g. user-1, user-6, user-11, user-15, user-19, user-24, user-26, user-27, user-32, user-44, … (+28 more)
+  - new_checkout  OFF → ON   18/200 (9%)  [toggle]
+      via new_checkout_rollout_pro: 18
+      e.g. user-1, user-25, user-31, user-36, user-40, user-50, user-51, user-60, user-70, user-80, … (+8 more)
+
+SEGMENTS
+  - new_checkout_rollout_pro: 0 → 18 members (+18 / −0), 9% of sample, 18 flips attributed
+  - flips not tied to a segment, served by (multivariate split): 100
+
+GUARDRAILS
+  max exposure 9% ≤ guardrail 100%  [OK]  (new_checkout)
+  variant shift 50% reported (no limit set)
+  segment id still unknown to the server: over 17 possible ids, exposure ranges 5.5%–13.5% (new_checkout_rollout_pro)
 [...]
-$ fg apply pl_20261126_dd49
+$ fg apply pl_20261126_32b1
 REFUSED (no_valid_approval): no approval token
-$ fg approve pl_20261126_dd49
+$ fg approve pl_20261126_32b1
 [... the human sees the diff and the impact again, recomputed locally, plus the pre-approved rollback steps ...]
-Type the first 4 characters of the plan hash to approve (1d..): 1d2d
+Type the first 4 characters of the plan hash to approve (b1..): b1ed
 Approver passphrase:
-approved by demo-human: apply token + pre-approved rollback token saved under /tmp/fgdemo-5r1j8760/home/approvals
-APPLIED pl_20261126_dd49: 3 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #4)
-$ fg rollback pl_20261126_dd49
-ROLLED BACK pl_20261126_dd49: 8 Flagsmith calls, restored base state=True (audit #5)
+approved by demo-human: apply token + pre-approved rollback token saved under /tmp/fgdemo-6o_yel41/home/approvals
+APPLIED pl_20261126_32b1: 3 Flagsmith calls, two-phase=True, prediction matched 200/200 (audit #4)
+$ fg rollback pl_20261126_32b1
+ROLLED BACK pl_20261126_32b1: 8 Flagsmith calls, restored base state=True (audit #5)
 $ fg audit verify
-OK   chain OK, 5 records, head dbc1f10873ae; live state matches last change: True
+OK   chain OK, 5 records, head 54c617385b0d; live state matches last change: True
 ```
 
 Reading it: the agent's `fg apply` is **refused** because it has no signed approval. The human's `fg approve`
 re-renders the plan and impact itself and asks for the first 4 characters of the plan hash and the approver
 passphrase (hidden, so it is not in the output). After the apply, FlagGate evaluates the same identities
-through the live Flagsmith API and reports `prediction matched 60/60`.
+through the live Flagsmith API and reports `prediction matched 200/200`.
 
-(In this recording the 10% pro rollout reached 0 of the 60 sampled identities. The impact preview says why:
-`PERCENTAGE_SPLIT` hashes on the server-assigned segment id, which is unknown before the segment exists, so
-exposure is a range, `0%–10%` here. Flagsmith's id is only known after the first phase of the apply.)
+The preview separates the two effects: 18 of 200 sampled identities (9%) get the new checkout through the
+segment (the rollout), and the 50/50 button test re-assigns 100 identities between variants (reported as
+variant shift, not as exposure). Because `PERCENTAGE_SPLIT` hashes on the server-assigned segment id, which is
+unknown before the segment exists, the preview also gives a range (`5.5%–13.5%` here); the two-phase apply
+re-predicts with the real id before changing anything else. The seed has 200 identities, 40% on the `pro` plan.
 
 Without a Flagsmith server you can run the impact engine alone on the test fixtures:
 
