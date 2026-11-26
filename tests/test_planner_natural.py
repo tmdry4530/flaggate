@@ -114,3 +114,17 @@ def test_values_keep_the_word_feature():
 def test_grammar_short_example_parses():
     example = GRAMMAR_SHORT.split("Example: '", 1)[1].rstrip("'.")
     assert plan_from_prompt(example, demo_snapshot()).guardrails.max_exposure_pct == 45
+
+
+def test_every_readme_fg_plan_prompt_parses_first_try():
+    """README quick start / demo prompts (dev3 owns the text; this keeps them parseable)."""
+    import re
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text()
+    prompts = re.findall(r'fg plan "([^"<]+)"', readme)
+    assert "roll out new_checkout to 50% of pro users; a/b test checkout_button_color green vs orange 50/50" in prompts
+    for prompt in prompts:
+        p = plan_from_prompt(prompt, demo_snapshot())
+        assert ops(p) == ["create_segment", "set_segment_override", "set_mv_weights"], prompt
+        assert p.ops[1].priority == 1  # dev3: behind the existing pro_users override (Duplicate priority fix)
