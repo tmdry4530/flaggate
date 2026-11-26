@@ -215,6 +215,14 @@ class ArchiveFeatureOp(_Strict):
     feature: str = Field(min_length=1)
 
 
+class DeleteFeatureOp(_Strict):
+    """Delete a feature. Only valid as the rollback of a feature the same plan created: the gatekeeper refuses it
+    in submitted plans and for any feature that existed before the forward plan (see PLAN_SCHEMA.md)."""
+
+    op: Literal["delete_feature"]
+    feature: str = Field(min_length=1)
+
+
 Op = Annotated[
     Union[
         CreateFeatureOp,
@@ -228,6 +236,7 @@ Op = Annotated[
         DeleteSegmentOverrideOp,
         DeleteSegmentOp,
         ArchiveFeatureOp,
+        DeleteFeatureOp,
     ],
     Field(discriminator="op"),
 ]

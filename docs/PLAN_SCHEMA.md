@@ -71,6 +71,10 @@ All ops are strict models (unknown fields and unknown `op` values fail validatio
 | `delete_segment_override` | `DeleteSegmentOverrideOp` | `feature`, `segment` |
 | `delete_segment` | `DeleteSegmentOp` | `segment` |
 | `archive_feature` | `ArchiveFeatureOp` | `feature` |
+| `delete_feature` | `DeleteFeatureOp` | `feature` — **rollback-only**: valid only to undo a `create_feature`/`create_mv_feature` of the same forward plan. The gatekeeper refuses it in a submitted (forward) plan and for any feature that existed before that plan. |
+
+Not in v1 (deferred): `unarchive_feature`, `delete_variant`. Their effects stay non-reversible and are listed as such on
+the approval screen (`archive_feature` cannot be undone; an added variant is rolled back to weight 0).
 
 Weights are validated with an absolute tolerance of `1e-6`. `33+33=66` is rejected; include the control, e.g. `{"blue": 34, "green": 33, "orange": 33}`.
 

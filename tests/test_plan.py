@@ -334,3 +334,20 @@ def test_max_variant_shift_pct_set_is_semantic_and_validated():
         data["guardrails"]["max_variant_shift_pct"] = bad
         with pytest.raises(ValidationError):
             Plan.model_validate(data)
+
+
+def test_delete_feature_op_parses_and_keeps_golden_hash():
+    from flaggate import DeleteFeatureOp
+    from flaggate.plan import OpAdapter
+
+    op = OpAdapter.validate_python({"op": "delete_feature", "feature": "dark_mode"})
+    assert isinstance(op, DeleteFeatureOp)
+    with pytest.raises(ValidationError):
+        OpAdapter.validate_python({"op": "delete_feature", "feature": ""})
+    with pytest.raises(ValidationError):
+        OpAdapter.validate_python({"op": "delete_feature", "feature": "x", "force": True})
+    # adding an op type does not change the canonical form of existing plans
+    assert plan_hash(Plan.model_validate(EXAMPLE)) == GOLDEN_HASH
+    data = deepcopy(EXAMPLE)
+    data["rollback"] = {"ops": [{"op": "delete_feature", "feature": "dark_mode"}]}
+    assert plan_hash(Plan.model_validate(data)) != GOLDEN_HASH
