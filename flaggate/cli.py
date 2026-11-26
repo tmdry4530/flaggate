@@ -363,7 +363,8 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("keygen"); s.add_argument("--name", default=getpass.getuser()); s.set_defaults(fn=cmd_keygen)
     g = sub.add_parser("gatekeeper").add_subparsers(dest="gcmd", required=True)
     s = g.add_parser("init")
-    s.add_argument("--api-url", default="http://127.0.0.1:8600")
+    s.add_argument("--api-url", default=os.environ.get("FLAGSMITH_API_URL", "http://127.0.0.1:8600"),
+                   help="Flagsmith API (default: $FLAGSMITH_API_URL, else http://127.0.0.1:8600)")
     s.add_argument("--organisation-id", type=int, required=True)
     s.add_argument("--project-id", type=int, required=True)
     s.add_argument("--environment", required=True, help="environment name, e.g. Development")
