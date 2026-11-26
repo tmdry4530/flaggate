@@ -89,6 +89,16 @@ def test_planner_misc_and_errors():
     assert split_clauses("a; b\nc") == ["a", "b", "c"]
 
 
+def test_planner_natural_exposure_cap():
+    p = plan_from_prompt("Roll out new_checkout to 50% of pro users, keeping exposure under 45% of users.", demo_snapshot())
+    assert p.guardrails.max_exposure_pct == 45 and [o.op for o in p.ops] == ["create_segment", "set_segment_override"]
+    assert plan_from_prompt("enable new_checkout while keeping exposure below 30%", demo_snapshot()).guardrails.max_exposure_pct == 30
+    # the wording Codex used first in the recorded e2e run
+    p = plan_from_prompt("Roll out the new_checkout feature to 50% of pro users, while keeping total exposure under 45% "
+                         "of all users.", demo_snapshot())
+    assert p.guardrails.max_exposure_pct == 45
+
+
 def test_planner_stop_rollout():
     snap = demo_snapshot()
     after = simulate(snap, plan_from_prompt("roll out new_checkout to 10% of beta users", snap).ops)

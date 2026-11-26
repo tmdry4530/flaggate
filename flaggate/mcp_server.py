@@ -191,6 +191,14 @@ TOOL_SPECS: list[dict[str, Any]] = [
                                                       "timeout_s": {"type": "number", "default": 45}},
                      "required": ["plan_id"]}},
 ]
+# MCP tool annotations: reads are read-only; the two submit tools write only a *proposal* into the local gatekeeper
+# (nothing reaches Flagsmith until a human approves), so they are non-destructive and closed-world. Clients such as
+# Codex use these hints to decide which calls need their own approval.
+_PROPOSE = {"plan_from_prompt", "submit_plan"}
+for _t in TOOL_SPECS:
+    _t["annotations"] = ({"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False,
+                          "openWorldHint": False} if _t["name"] in _PROPOSE else
+                         {"readOnlyHint": True, "openWorldHint": False})
 TOOL_NAMES = [t["name"] for t in TOOL_SPECS]
 
 

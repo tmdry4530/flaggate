@@ -11,7 +11,7 @@ Understood clauses (case-insensitive; join several with ';', ',', 'and', or new 
   promote <variant> (for|on|in) <feature>               -> weights <variant>=100, others 0
   stop|end|remove rollout of <feature>                  -> delete its rollout overrides + segments
   archive <feature>
-  ... with max exposure <N>%                            -> guardrails.max_exposure_pct
+  ... with max exposure <N>% | keeping exposure under <N>%  -> guardrails.max_exposure_pct
 
 Unknown clauses raise PlannerError listing what is supported. Rollback ops are left
 empty here; the gatekeeper generates them from the live snapshot on submit.
@@ -182,7 +182,11 @@ def _need(ctx: _Ctx, feature: str) -> Any:
 
 def _clause(ctx: _Ctx, clause: str) -> None:
     c = clause.strip()
-    m = re.search(r"\b(?:with\s+)?max(?:imum)?\s+exposure\s+(\d+(?:\.\d+)?)\s*%", c, re.I)
+    c = c.rstrip(" .")
+    c = re.sub(rf"\b(?:the\s+)?({NAME})\s+(?:feature|flag)\b", r"\1", c, flags=re.I)  # "the X feature" -> "X"
+    m = re.search(r"\b(?:with\s+)?max(?:imum)?\s+exposure\s+(\d+(?:\.\d+)?)\s*%", c, re.I) or re.search(
+        r"\b(?:(?:while\s+)?keep(?:ing)?|with)\s+(?:the\s+)?(?:total\s+|overall\s+)?exposure\s+(?:under|below|at\s+most|<=?|of\s+at\s+most)\s+"
+        r"(\d+(?:\.\d+)?)\s*%(?:\s+of\s+(?:all\s+)?users)?", c, re.I)
     if m:
         ctx.max_exposure = float(m[1])
         c = (c[: m.start()] + c[m.end():]).strip(" ,")

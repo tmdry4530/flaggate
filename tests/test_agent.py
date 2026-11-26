@@ -51,6 +51,11 @@ def test_tool_list_has_no_apply_or_approve():
     for name in TOOL_NAMES:
         assert not any(w in name for w in ("apply", "approve", "rollback", "sign", "token", "key"))
     assert not any(hasattr(Tools, n) for n in ("apply", "approve", "rollback"))
+    from flaggate.mcp_server import TOOL_SPECS
+    ann = {t["name"]: t["annotations"] for t in TOOL_SPECS}
+    assert all(ann[n]["readOnlyHint"] for n in TOOL_NAMES if n not in ("plan_from_prompt", "submit_plan"))
+    assert ann["submit_plan"] == {"readOnlyHint": False, "destructiveHint": False, "idempotentHint": False,
+                                  "openWorldHint": False}
 
 
 def test_mcp_module_never_touches_keys():
