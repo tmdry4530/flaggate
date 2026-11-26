@@ -85,12 +85,12 @@ def test_ab_traffic_promote_live(daemon):
     metrics = w["tmp"] / "metrics.csv"
     env = {**os.environ, "FS_ENV_KEY": lp.env_key, "FLAGSMITH_API_URL": API}
     r = subprocess.run([sys.executable, "scripts/mock_traffic.py", "--feature", "checkout_button_color",
-                        "--rates", "blue=0.08,green=0.14,orange=0.09", "--n", "900", "--seed", "3",
+                        "--rates", "blue=0.06,green=0.16,orange=0.08", "--n", "1200", "--seed", "3",
                         "--out", str(metrics)], capture_output=True, text=True, cwd=ROOT, env=env, timeout=300)
     assert r.returncode == 0, r.stderr
     assert lp.env_key not in r.stdout + r.stderr
     counts = read_metrics(metrics, "checkout_button_color")
-    assert set(counts) == {"blue", "green", "orange"} and sum(n for n, _ in counts.values()) == 900
+    assert set(counts) == {"blue", "green", "orange"} and sum(n for n, _ in counts.values()) == 1200
     # 2) promote -> same gate
     snap = gk.snapshot()
     an = analyze(snap, "checkout_button_color", counts)

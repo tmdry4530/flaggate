@@ -121,10 +121,38 @@ Guardrails live in the plan: `guardrails.max_exposure_pct` and the optional
 
 ## Connecting an agent
 
-*Placeholder.* The agent's side is meant to be an MCP server that only calls the gatekeeper (snapshot, submit a
-plan, ask to apply). The snippet for Claude Code or Codex CLI will be added under `examples/`.
-**Unverified: nothing in this repository version has been tested with a real coding agent yet.**
-Until then `fg plan "<prompt>"` is the same flow with the keyless planner.
+The agent gets `fg-mcp`, a stdio MCP server that **holds no Flagsmith key and no approver key**. It talks only
+to the gatekeeper's agent socket (`$FG_HOME/gatekeeper/agent.sock`), which has no apply/rollback routes. Tools:
+`snapshot`, `read_features`, `read_feature`, `read_segments`, `plan_schema`, `plan_from_prompt`, `submit_plan`,
+`plan_status`, `wait_for_result`. There is no apply/approve tool: a human runs `fg approve <plan_id>`.
+Details and the tests that lock this: [docs/AGENT.md](docs/AGENT.md).
+
+Claude Code (project `.mcp.json`, from [examples/claude-code.mcp.json](examples/claude-code.mcp.json)):
+```json
+{"mcpServers": {"flaggate": {
+  "command": "/path/to/flagsmith/.venv/bin/fg-mcp", "args": [],
+  "env": {"FG_AGENT_SOCKET": "~/.flaggate/gatekeeper/agent.sock"}}}}
+```
+Codex CLI (project-local or temporary config, or the same keys as `-c` overrides; from
+[examples/codex.config.toml](examples/codex.config.toml)):
+```toml
+[mcp_servers.flaggate]
+command = "/path/to/flagsmith/.venv/bin/fg-mcp"
+env = { FG_AGENT_SOCKET = "~/.flaggate/gatekeeper/agent.sock" }
+tool_timeout_sec = 120   # wait_for_result blocks up to 50 s per call
+```
+
+Verified with a real agent (Codex CLI 0.166.0, `codex exec`, throw-away org). Codex submitted the plan through
+fg-mcp, the human step ran `fg approve`, and the gatekeeper applied it. Redacted log:
+[docs/evidence/codex-e2e-run-20261126-115519/](docs/evidence/codex-e2e-run-20261126-115519/)
+```
+[ 32.0s] human: fg approve pl_20261126_59c5
+APPLIED pl_20261126_59c5: 2 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #3)
+manual steps replaced: 8   elapsed prompt→applied: 29s
+```
+In that run the approval was typed by a pty script (demo automation only; it still has to pass the TTY check
+and type the passphrase). Reproduce with `examples/agent_e2e/run_codex_e2e.py`. Without an agent,
+`fg plan "<prompt>"` runs the same flow with the keyless planner.
 
 ## How we use Flagsmith
 
@@ -135,7 +163,7 @@ Until then `fg plan "<prompt>"` is the same flow with the keyless planner.
 | **flagsmith-flag-engine** 11.1.2 | `get_evaluation_result` on the "before" and "after" documents for every sampled identity: who flips, per-segment membership, exposure, variant shift, guardrails. Same path as the SDK's local evaluation. | verified (docs/IMPACT.md) |
 | **Python SDK** `flagsmith==6.3.0` | After an apply, re-evaluates the same identities against the live API with `transient=True` (no new identities are created) and reports `prediction matched N/N`. Also the seed script's read-back. | verified |
 | **CLI** `@flagsmith/cli` v2 | `scripts/fs-cli.sh` runs it against the local instance (`flag list`, `evaluate --identity`, writes with `--yes`). It is not on the apply path. | verified in the spike (docs/SELFHOST.md); **unverified**: the CLI evaluation step planned for the demo video |
-| **MCP server** (official, stdio) | Probed with `scripts/mcp-probe.py`: 54 tools. It needs a static Admin key, so an agent holding that config could write directly. FlagGate keeps the key away from the agent instead. | probe verified; **unverified**: FlagGate's own MCP front end (dev2, not in this README's scope) |
+| **MCP server** (official, stdio) | Probed with `scripts/mcp-probe.py`: 54 tools. It needs a static Admin key, so an agent holding that config could write directly. FlagGate keeps the key away from the agent instead. | probe verified. FlagGate's own MCP front end `fg-mcp` is verified with Codex CLI (see [Connecting an agent](#connecting-an-agent)) |
 
 ## Architecture
 

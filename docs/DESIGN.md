@@ -64,7 +64,7 @@ Components (Python 3.13, one package `flaggate`, CLI entry `fg`):
 | Component | Role | Holds secrets? |
 |---|---|---|
 | `fg-gatekeeper` | Only process that can write to Flagsmith. Snapshot, validate, hash, diff, impact, apply, verify, audit. Started by the human (`fg gatekeeper start`, passphrase prompt). | Flagsmith Admin API key (decrypted into memory at start), approver **public** key |
-| `fg-mcp` | stdio MCP server the agent launches. Thin client of the gatekeeper socket. Re-exports the **read-only** tools of the official Flagsmith MCP (gatekeeper filters on their `readOnlyHint=True` annotations) plus FlagGate tools. There's no apply tool that works without a token. | none |
+| `fg-mcp` | stdio MCP server the agent launches. Thin client of the gatekeeper's agent socket (no apply/rollback routes). FlagGate read + propose tools (`snapshot`, `read_*`, `plan_schema`, `plan_from_prompt`, `submit_plan`, `plan_status`, `wait_for_result`); no apply/approve tool. Verified with Codex CLI (docs/AGENT.md). The planned proxy of the official MCP's read-only tools was cut. | none |
 | `fg plan "<prompt>"` | Keyless rule-based planner (fallback brain for the demo, no LLM). Same plan schema as the agent path. | none |
 | `fg approve <plan_id>` | Human-only approval CLI. Needs a TTY, fetches the plan from the gatekeeper, **recomputes hash/diff/impact locally** (doesn't trust agent text), asks the human to type the 4-char hash prefix + passphrase, and signs. | approver private key (scrypt-encrypted file, passphrase never stored) |
 | `fg rollback`, `fg promote` | Make new plans (inverse plan / winner rollout) that go through the same gate. | none |
@@ -73,9 +73,9 @@ Components (Python 3.13, one package `flaggate`, CLI entry `fg`):
 
 ### Agent brain without API keys
 - **Primary**: the user's own Codex CLI / Claude Code (whatever login they already have) gets `fg-mcp` in its
-  MCP config. The agent reads state (`fg_snapshot`, proxied official read tools), drafts a plan JSON
-  that follows the schema, and calls `fg_submit_plan`. FlagGate never calls an LLM and ships no key.
-- **Fallback**: `fg plan` / MCP tool `fg_plan_from_prompt` is a deterministic grammar-based planner
+  MCP config. The agent reads state (`snapshot`, `read_*`), drafts a plan JSON
+  that follows the schema, and calls `submit_plan`. FlagGate never calls an LLM and ships no key.
+- **Fallback**: `fg plan` / MCP tool `plan_from_prompt` is a deterministic grammar-based planner
   (regex + small vocabulary: "roll out X to N% of <segment>", "A/B test X: a vs b [p/q]", "only for
   <trait>=<value>", "promote winner", "roll back"). It's enough for the demo and for CI tests.
 
@@ -218,8 +218,8 @@ Admin API (`Authorization: Api-Key <org admin key>`):
 | keys for SDK | `POST /api/v1/environments/{env}/api-keys/` |
 | traceability | `POST /api/v1/projects/{p}/tags/` + feature `tags` (mirror `fg:<plan_id>`) |
 
-Official **Flagsmith MCP** (stdio, inside the gatekeeper): read-only tools proxied to the agent
-(`list_project_features`, `list_project_segments`, `get_feature_evaluation_data`, …).
+Official **Flagsmith MCP** (stdio): probed (54 tools, docs/SELFHOST.md). The planned read-only proxy through
+fg-mcp was cut; the agent reads state through fg-mcp's own `snapshot`/`read_*` tools instead.
 Official **Flagsmith CLI** v2: `flagsmith evaluate --identity` and `flagsmith environment document` for
 post-apply verification output in the demo (`TARGETING_MATCH; segment=…`, `SPLIT; weight=…`).
 Official **Python SDK** 6.3.0: `fg watch` persona panel (local evaluation).
