@@ -12,7 +12,7 @@ $FLAGSMITH_RUNTIME/mcpvenv/bin/python scripts/mcp-probe.py   # official Flagsmit
 scripts/selfhost-down.sh   # stops only what selfhost-up started (pid file / pg_ctl)
 ```
 
-Runtime lives **outside** the repo: `../flagsmith-runtime/`
+Runtime lives **outside** the repo: `../flagsmith-runtime/` next to the repo by default (`FLAGSMITH_RUNTIME` overrides)
 (`src/` sparse clone, `venv/` API deps, `pgconda/` Postgres, `pgdata/`, `mcpvenv/`, `cli/`, `logs/`,
 `local.env` = generated secrets, chmod 600, never committed/printed). Disk used ≈ 630 MB (plus uv/npm caches in $HOME).
 

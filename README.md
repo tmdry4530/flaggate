@@ -1,6 +1,17 @@
 # FlagGate
 
-*Toggle Wars, Track 2: AI Agents and Feature Flags.*
+**An AI agent plans Flagsmith rollouts and A/B tests, previews the impact with Flagsmith's own flag engine, and changes nothing until a human signs the exact plan.**
+
+*Toggle Wars, Track 2: AI Agents and Feature Flags.* Demo video: **[link coming soon](#)** <!-- TODO(submission): replace with the demo video URL -->
+
+## Track 2 at a glance
+
+| Judging point | What FlagGate does | Where to check |
+|---|---|---|
+| **Uses Flagsmith (CLI / API / MCP)** | Self-hosted Flagsmith v2.295.2; Admin API for every read and write; the environment document plus `flagsmith-flag-engine` for the impact preview; the Python SDK to verify each apply against the live server; the Flagsmith CLI against the local instance; the official Flagsmith MCP server probed (54 tools); FlagGate's own MCP server `fg-mcp` for agents. | [How we use Flagsmith](#how-we-use-flagsmith), [docs/SELFHOST.md](docs/SELFHOST.md) |
+| **Time saved** | One sentence replaces the clicks for segment, split, override and variant weights. In the recorded Codex run: `manual steps replaced: 8   elapsed prompt→applied: 19s`. | [Connecting an agent](#connecting-an-agent), [docs/evidence/](docs/evidence/codex-e2e-run3-20261126-122039/fg-approve.log) |
+| **Human approval** | The agent holds no Flagsmith key and has no apply/approve route. A human signs the plan hash (Ed25519, single use, expires); drift, a changed plan or a replayed token is refused. Rollback is approved together with apply. | [Security model](#security-model), [docs/AGENT.md](docs/AGENT.md) |
+| **Clear output** | Every plan shows a diff against live state, who changes (sampled identities, per segment), guardrails and a verdict; after apply, `prediction matched N/N`; `fg audit verify` checks a hash-chained audit log. | [30-second demo](#30-second-demo) |
 
 ## The problem
 
@@ -107,8 +118,8 @@ The clean-room run used a fresh clone, an empty runtime directory and other port
 on the development box, which already had uv and Python 3.13. Not tested on another machine.
 
 To use other ports or directories, set these before the scripts (defaults in brackets):
-`FLAGSMITH_RUNTIME` [`../flagsmith-runtime`], `API_PORT` [8600],
-`PG_PORT` [55432], `FLAGSMITH_LOGDIR` [`$FLAGSMITH_RUNTIME/logs`]; for `fg`, `FLAGSMITH_API_URL`
+`FLAGSMITH_RUNTIME` [`../flagsmith-runtime`, next to the repo], `API_PORT` [8600],
+`PG_PORT` [55432], `FLAGSMITH_ADMIN_EMAIL` [`admin@localhost.test`, local-only placeholder], `FLAGSMITH_LOGDIR` [`$FLAGSMITH_RUNTIME/logs`]; for `fg`, `FLAGSMITH_API_URL`
 [`http://127.0.0.1:8600`] and `FG_HOME` [`~/.flaggate`]. `scripts/selfhost-down.sh` stops the runtime that
 `FLAGSMITH_RUNTIME` points to.
 
@@ -119,10 +130,10 @@ uv sync --extra dev
 export PATH="$PWD/.venv/bin:$PATH"     # puts `fg` on the PATH
 
 # 2. Self-hosted Flagsmith v2.295.2 on http://127.0.0.1:8600 (runtime goes outside the repo,
-#    default ../flagsmith-runtime, override with FLAGSMITH_RUNTIME)
+#    default ../flagsmith-runtime next to the repo, override with FLAGSMITH_RUNTIME)
 scripts/selfhost-up.sh                 # source + deps + user-space Postgres 16 + migrate + gunicorn
 scripts/seed.sh                        # org/project/env, flags, multivariate flag, segment; SDK read-back
-R=${FLAGSMITH_RUNTIME:-../flagsmith-runtime}
+R=${FLAGSMITH_RUNTIME:-$(cd .. && pwd)/flagsmith-runtime}
 
 # 3. Approver key (the human, once). Asks for a passphrase twice.
 fg keygen
@@ -166,16 +177,16 @@ Details and the tests that lock this: [docs/AGENT.md](docs/AGENT.md).
 
 Claude Code (project `.mcp.json`, from [examples/claude-code.mcp.json](examples/claude-code.mcp.json)):
 ```json
-{"mcpServers": {"flaggate": {
-  "command": "/path/to/flagsmith/.venv/bin/fg-mcp", "args": [],
-  "env": {"FG_AGENT_SOCKET": "~/.flaggate/gatekeeper/agent.sock"}}}}
+{"mcpServers": {"flaggate": {"command": "/path/to/flagsmith/.venv/bin/fg-mcp", "args": []}}}
 ```
+Replace `/path/to/flagsmith` with your clone. `fg-mcp` finds the socket at `$FG_HOME/gatekeeper/agent.sock`
+(`FG_HOME` defaults to `~/.flaggate`); set `FG_AGENT_SOCKET` in `env` only if it lives elsewhere.
+
 Codex CLI (project-local or temporary config, or the same keys as `-c` overrides; from
 [examples/codex.config.toml](examples/codex.config.toml)):
 ```toml
 [mcp_servers.flaggate]
 command = "/path/to/flagsmith/.venv/bin/fg-mcp"
-env = { FG_AGENT_SOCKET = "~/.flaggate/gatekeeper/agent.sock" }
 tool_timeout_sec = 120   # wait_for_result blocks up to 50 s per call
 ```
 
@@ -247,9 +258,9 @@ Limitations (as stated in docs/CORE.md and docs/DESIGN.md):
   Running the gatekeeper as another user or on another host would harden it; the protocol would not change.
 * The impact preview is a prediction on a sample of identities. `PERCENTAGE_SPLIT` depends on the server-assigned
   segment id, so a first estimate is a range; the two-phase apply re-predicts with the real id.
-* The Flagsmith v1 operations used cannot delete a feature or a variant, or unarchive: rolling back
-  `create_feature` disables and archives it, `add_variant` is set to 0%, and `archive_feature` is irreversible
-  (shown on the approval screen).
+* Rolling back `create_feature` deletes the new feature (the rollback-only `delete_feature`), but a variant
+  cannot be deleted and a feature cannot be unarchived: `add_variant` is rolled back to 0%, and `archive_feature`
+  is irreversible (shown on the approval screen).
 * Any change to the project after planning counts as drift. You re-plan (one command).
 * `local.env` from the seed script holds the Admin key in plaintext for the spike; keep it outside the repository.
 

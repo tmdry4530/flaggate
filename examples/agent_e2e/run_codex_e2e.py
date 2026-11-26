@@ -57,13 +57,20 @@ You have the `flaggate` MCP tools. Use ONLY those tools (no shell commands, no f
 5. Finish with a short report: final status, prediction match, manual steps replaced and elapsed time."""
 
 
+def redact_paths(text: str, out: Path) -> str:
+    """Remove machine-specific absolute paths from the evidence copy (raw logs keep them)."""
+    text = text.replace(str(out), "<raw-log-dir>").replace(CODEX, "codex").replace(str(REPO), "<repo>")
+    text = re.sub(r"/tmp/fg-e2e-[\w.-]+", "<tmpdir>", text)
+    return text.replace(str(Path.home()), "~")
+
+
 def sha(p: Path) -> str | None:
     return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=f"../fg-agent-e2e/{datetime.now():%Y%m%d-%H%M%S}")
+    ap.add_argument("--out", default=str(REPO.parent / "fg-agent-e2e" / f"{datetime.now():%Y%m%d-%H%M%S}"))
     ap.add_argument("--evidence", default=str(REPO / "docs/evidence"))
     ap.add_argument("--keep-org", action="store_true")
     a = ap.parse_args()
@@ -217,6 +224,7 @@ def main() -> int:
         text = re.sub(r"[\w.+-]+@[\w-]+\.[\w.]+", "<email>", text)
         text = re.sub(r"\x1b\[[0-9;]*m", "", text)
         text = text.replace(str(home), "$FG_HOME")
+        text = redact_paths(text, out)
         (ev_dir / f.name).write_text(text)
     print(f"raw logs: {out}\nredacted copy: {ev_dir}")
     return 0

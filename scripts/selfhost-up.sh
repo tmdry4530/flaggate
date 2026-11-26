@@ -11,7 +11,7 @@ set -euo pipefail
 unset GITHUB_TOKEN GH_TOKEN || true
 
 FLAGSMITH_VERSION="${FLAGSMITH_VERSION:-v2.295.2}"
-RUNTIME="${FLAGSMITH_RUNTIME:-../flagsmith-runtime}"
+RUNTIME="${FLAGSMITH_RUNTIME:-$(cd "$(dirname "$0")/../.." && pwd)/flagsmith-runtime}"  # default: sibling of the repo
 PG_PORT="${PG_PORT:-55432}"
 API_PORT="${API_PORT:-8600}"
 LOGDIR="${FLAGSMITH_LOGDIR:-$RUNTIME/logs}"
@@ -59,7 +59,7 @@ if [ ! -f local.env ]; then
   umask 077
   cat > local.env <<EOS
 DJANGO_SECRET_KEY=$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))')
-FS_ADMIN_EMAIL=admin@localhost.test
+FS_ADMIN_EMAIL=${FLAGSMITH_ADMIN_EMAIL:-admin@localhost.test}
 FS_ADMIN_PASSWORD=$(python3 -c 'import secrets;print(secrets.token_urlsafe(24))')
 EOS
   umask 022

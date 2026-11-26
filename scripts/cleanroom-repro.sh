@@ -3,13 +3,13 @@
 # own FG_HOME, own uv cache, nothing from an existing runtime in the environment. Prints wall time and disk per step.
 #
 #   scripts/cleanroom-repro.sh [cleanroom-dir] [log-dir]
-#     cleanroom-dir  default $TMPDIR/cleanroom-flagsmith   (repo clone, runtime, FG_HOME, uv cache; removed by --clean)
+#     cleanroom-dir  default $TMPDIR/cleanroom-flagsmith (repo clone, runtime, FG_HOME, uv cache; removed by --clean)
 #     log-dir        default <cleanroom-dir>-logs             (kept)
 #   API_PORT (default 8601), PG_PORT (default 55433)
 #   scripts/cleanroom-repro.sh --clean [cleanroom-dir]       stop THAT runtime (its own pid file/data dir) and delete it
 set -uo pipefail
 if [ "${1:-}" = "--clean" ]; then
-  CR="${2:-$TMPDIR/cleanroom-flagsmith}"
+  CR="${2:-${TMPDIR:-/tmp}/cleanroom-flagsmith}"
   case "$CR" in */flagsmith-runtime|"") echo "refusing: $CR" >&2; exit 2;; esac
   for p in $(pgrep -f "$CR/repo/.venv/bin/fg gatekeeper start" || true); do kill "$p"; done
   [ -f "$CR/rt/api.pid" ] && kill "$(cat "$CR/rt/api.pid")" 2>/dev/null
@@ -19,7 +19,7 @@ fi
 unset GITHUB_TOKEN GH_TOKEN UV_PROJECT_ENVIRONMENT
 for v in $(env | grep -o '^FS_[A-Z_]*\|^FLAGGATE[A-Z_]*\|^FLAGSMITH[A-Z_]*\|^FG_[A-Z_]*'); do unset "$v"; done
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-CR="${1:-$TMPDIR/cleanroom-flagsmith}"; LOGS="${2:-$CR-logs}"
+CR="${1:-${TMPDIR:-/tmp}/cleanroom-flagsmith}"; LOGS="${2:-$CR-logs}"
 export FLAGSMITH_RUNTIME="$CR/rt" API_PORT="${API_PORT:-8601}" PG_PORT="${PG_PORT:-55433}" FLAGSMITH_LOGDIR="$LOGS" \
        FG_HOME="$CR/fghome" UV_CACHE_DIR="$CR/uvcache" FLAGSMITH_API_URL="http://127.0.0.1:${API_PORT:-8601}"
 [ -e "$CR" ] && { echo "$CR exists; run --clean first" >&2; exit 2; }

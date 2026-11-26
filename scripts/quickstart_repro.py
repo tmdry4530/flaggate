@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 
 FG = sys.argv[1] if len(sys.argv) > 1 else "fg"
-RUNTIME = os.environ.get("FLAGSMITH_RUNTIME", "../flagsmith-runtime")
+RUNTIME = os.environ.get("FLAGSMITH_RUNTIME", str(Path(__file__).resolve().parents[2] / "flagsmith-runtime"))
 API = f"http://127.0.0.1:{os.environ.get('API_PORT', '8600')}"
 FG_HOME = os.environ.get("FG_HOME")
 if not FG_HOME or any(Path(FG_HOME).expanduser().glob("*")):

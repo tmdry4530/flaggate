@@ -18,7 +18,8 @@ from typing import Any
 from .identities import Identity
 
 DEFAULT_API_URL = "http://127.0.0.1:8600"
-DEFAULT_RUNTIME = "../flagsmith-runtime"
+# default runtime: ../flagsmith-runtime next to the repo (override with FLAGSMITH_RUNTIME)
+DEFAULT_RUNTIME = str(Path(__file__).resolve().parents[2] / "flagsmith-runtime")
 
 
 class FlagsmithHTTPError(RuntimeError):

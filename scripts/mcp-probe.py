@@ -8,7 +8,7 @@ from pathlib import Path
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
-RUNTIME = Path(os.environ.get("FLAGSMITH_RUNTIME", "../flagsmith-runtime"))
+RUNTIME = Path(os.environ.get("FLAGSMITH_RUNTIME", str(Path(__file__).resolve().parents[2] / "flagsmith-runtime")))
 env = dict(l.split("=", 1) for l in (RUNTIME / "local.env").read_text().splitlines() if "=" in l)
 state = json.loads((RUNTIME / "seed-state.json").read_text())
 

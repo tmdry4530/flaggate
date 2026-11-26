@@ -21,3 +21,12 @@ state/
 demo-video/.tools/
 demo-video/clips/*.gif
 demo-video/clips/*.mp4
+
+# tooling / OS noise and anything that could hold keys
+.pytest_cache/
+*.egg-info/
+.DS_Store
+local.env
+*.pem
+*.key
+fg-agent-e2e/

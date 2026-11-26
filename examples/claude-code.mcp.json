@@ -2,10 +2,7 @@
   "mcpServers": {
     "flaggate": {
       "command": "/path/to/flagsmith/.venv/bin/fg-mcp",
-      "args": [],
-      "env": {
-        "FG_AGENT_SOCKET": "~/.flaggate/gatekeeper/agent.sock"
-      }
+      "args": []
     }
   }
 }

@@ -76,5 +76,5 @@ env -u OPENAI_API_KEY -u UV_PROJECT_ENVIRONMENT .venv/bin/python examples/agent_
 * `summary.json` records the first `plan_from_prompt`/`submit_plan` call and whether it was accepted
   (3/3 first-try successes on 2026-11-26 after the planner accepted natural wording and the tool description
   started carrying the grammar).
-* Raw logs go to `../fg-agent-e2e/<run>/` (outside the repo); a redacted copy (keys, passwords, e-mail
-  addresses and the temp home replaced) goes to `docs/evidence/codex-e2e-<run>/`.
+* Raw logs go to `../fg-agent-e2e/<run>/` next to the repo (outside it); a redacted copy (keys, passwords, e-mail
+  addresses, the temp home and machine-specific absolute paths replaced) goes to `docs/evidence/codex-e2e-<run>/`.

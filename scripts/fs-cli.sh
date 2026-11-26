@@ -3,7 +3,7 @@
 # Loads credentials from $RUNTIME/local.env and exports them under the host-scoped variable the CLI
 # requires for self-hosted instances (http://127.0.0.1:8600 -> FLAGSMITH_API_KEY_127_0_0_1_8600).
 set -euo pipefail
-RUNTIME="${FLAGSMITH_RUNTIME:-../flagsmith-runtime}"
+RUNTIME="${FLAGSMITH_RUNTIME:-$(cd "$(dirname "$0")/../.." && pwd)/flagsmith-runtime}"  # default: sibling of the repo
 API_PORT="${API_PORT:-8600}"
 set -a; . "$RUNTIME/local.env"; set +a
 export FLAGSMITH_API_URL="http://127.0.0.1:$API_PORT"

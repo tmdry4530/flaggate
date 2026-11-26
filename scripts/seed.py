@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-RUNTIME = Path(os.environ.get("FLAGSMITH_RUNTIME", "../flagsmith-runtime"))
+RUNTIME = Path(os.environ.get("FLAGSMITH_RUNTIME", str(Path(__file__).resolve().parents[2] / "flagsmith-runtime")))
 API = os.environ.get("FLAGSMITH_API_URL", f"http://127.0.0.1:{os.environ.get('API_PORT', '8600')}").rstrip("/")
 ENV_FILE = RUNTIME / "local.env"
 STATE_FILE = RUNTIME / "seed-state.json"

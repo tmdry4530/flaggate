@@ -40,13 +40,13 @@ counts as drift (strict on purpose: re-plan, it is one command).
 
 ## Reproduce
 ```bash
-cd /path/to/flagsmith
+cd flagsmith                                # the repo root
 env -u UV_PROJECT_ENVIRONMENT uv sync --extra dev        # project venv in ./.venv only
 env -u UV_PROJECT_ENVIRONMENT .venv/bin/pytest -q         # live tests skip if :8600 is down
 ```
 Demo (interactive terminal; `FG_HOME` defaults to `~/.flaggate`):
 ```bash
-R=../flagsmith-runtime
+R=${FLAGSMITH_RUNTIME:-../flagsmith-runtime}  # default runtime: next to the repo
 fg keygen                                   # approver passphrase, twice
 fg gatekeeper init --organisation-id 1 --project-id 1 --environment Development --from-env-file $R/local.env
 fg gatekeeper start &                       # gatekeeper passphrase; holds the keys from now on
