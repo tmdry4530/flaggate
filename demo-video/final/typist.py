@@ -23,8 +23,9 @@ ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07")
 PATH_RULES = [
     (re.compile(r"/tmp/fg-[A-Za-z0-9_]+(?:/work)?"), "~/demo"),
     (re.compile(r"/tmp/fg-[A-Za-z0-9_]+/h"), "~/.flaggate"),
-    (re.compile(r"/path/to/flagsmith-parent/\S*"), "~/flagsmith"),
-    (re.compile(r"/home/<user>\b/?\S*"), "~"),
+    # machine-specific roots, computed at runtime so no host path is hard-coded
+    (re.compile(re.escape(str(Path.home())) + r"\b/?\S*"), "~"),
+    (re.compile(re.escape("/" + Path(__file__).resolve().parts[1]) + r"/\S*"), "~/flagsmith"),
 ]
 PS1 = r"\[\e[1;32m\]$\[\e[0m\] "
 
