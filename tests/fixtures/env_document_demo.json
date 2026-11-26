@@ -1,0 +1,175 @@
+{
+ "id": 1,
+ "api_key": "FIXTURE_ENV_KEY_not_a_secret",
+ "project": {
+  "id": 1,
+  "name": "checkout-app",
+  "organisation": {
+   "id": 1,
+   "name": "Toggle Wars Demo",
+   "feature_analytics": false,
+   "stop_serving_flags": false,
+   "persist_trait_data": true
+  },
+  "hide_disabled_flags": false,
+  "segments": [
+   {
+    "id": 1,
+    "name": "pro_users",
+    "rules": [
+     {
+      "type": "ALL",
+      "rules": [
+       {
+        "type": "ANY",
+        "rules": [],
+        "conditions": [
+         {
+          "operator": "EQUAL",
+          "value": "pro",
+          "property_": "plan"
+         }
+        ]
+       }
+      ],
+      "conditions": []
+     }
+    ],
+    "feature_states": []
+   },
+   {
+    "id": 2,
+    "name": "beta_testers",
+    "rules": [
+     {
+      "type": "ALL",
+      "rules": [
+       {
+        "type": "ANY",
+        "rules": [],
+        "conditions": [
+         {
+          "operator": "EQUAL",
+          "value": "true",
+          "property_": "beta"
+         }
+        ]
+       }
+      ],
+      "conditions": []
+     }
+    ],
+    "feature_states": [
+     {
+      "feature": {
+       "id": 2,
+       "name": "checkout_banner",
+       "type": "STANDARD"
+      },
+      "enabled": true,
+      "django_id": null,
+      "feature_segment": {
+       "priority": 0
+      },
+      "featurestate_uuid": "11111111-1111-4111-8111-111111111111",
+      "feature_state_value": "Beta: free returns",
+      "multivariate_feature_state_values": []
+     }
+    ]
+   }
+  ],
+  "enable_realtime_updates": false,
+  "server_key_only_feature_ids": []
+ },
+ "feature_states": [
+  {
+   "feature": {
+    "id": 1,
+    "name": "new_checkout",
+    "type": "STANDARD"
+   },
+   "enabled": false,
+   "django_id": 1,
+   "feature_segment": null,
+   "featurestate_uuid": "c55eddaa-f663-49ec-9dec-bc74660cb6b7",
+   "feature_state_value": null,
+   "multivariate_feature_state_values": []
+  },
+  {
+   "feature": {
+    "id": 2,
+    "name": "checkout_banner",
+    "type": "STANDARD"
+   },
+   "enabled": true,
+   "django_id": 2,
+   "feature_segment": null,
+   "featurestate_uuid": "47358129-eadb-4701-ba57-0f8b7fc2a051",
+   "feature_state_value": "Free shipping over $40",
+   "multivariate_feature_state_values": []
+  },
+  {
+   "feature": {
+    "id": 3,
+    "name": "checkout_button_color",
+    "type": "MULTIVARIATE"
+   },
+   "enabled": true,
+   "django_id": 3,
+   "feature_segment": null,
+   "featurestate_uuid": "98eafca1-aa3a-4b3f-87ee-2aaa9c4f5245",
+   "feature_state_value": "blue",
+   "multivariate_feature_state_values": [
+    {
+     "multivariate_feature_option": {
+      "value": "green",
+      "id": 1,
+      "key": null
+     },
+     "percentage_allocation": 33.0,
+     "id": 1,
+     "mv_fs_value_uuid": "620979ee-80dc-4a48-a9e7-cb9f95cdc079"
+    },
+    {
+     "multivariate_feature_option": {
+      "value": "orange",
+      "id": 2,
+      "key": null
+     },
+     "percentage_allocation": 33.0,
+     "id": 2,
+     "mv_fs_value_uuid": "b43c0894-2c16-40f6-93ac-e31f26559a5b"
+    }
+   ]
+  }
+ ],
+ "identity_overrides": [
+  {
+   "identifier": "user-7",
+   "identity_uuid": "22222222-2222-4222-8222-222222222222",
+   "environment_api_key": "FIXTURE_ENV_KEY_not_a_secret",
+   "identity_features": [
+    {
+     "feature": {
+      "id": 1,
+      "name": "new_checkout",
+      "type": "STANDARD"
+     },
+     "enabled": true,
+     "django_id": null,
+     "feature_segment": null,
+     "featurestate_uuid": "33333333-3333-4333-8333-333333333333",
+     "feature_state_value": null,
+     "multivariate_feature_state_values": []
+    }
+   ]
+  }
+ ],
+ "name": "Development",
+ "allow_client_traits": true,
+ "updated_at": "2026-11-28T05:02:12+00:00",
+ "hide_sensitive_data": false,
+ "hide_disabled_flags": null,
+ "use_identity_composite_key_for_hashing": true,
+ "use_identity_overrides_in_local_eval": true
+}

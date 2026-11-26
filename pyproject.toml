@@ -3,7 +3,12 @@ name = "flaggate"
 version = "0.1.0"
 description = "FlagGate: human-gated Flagsmith change plans."
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2,<3"]
+dependencies = [
+    "pydantic>=2,<3",
+    # impact.py / verify.py: the SDK (pinned: the live-verify target) and the engine it evaluates with
+    "flagsmith==6.3.0",
+    "flagsmith-flag-engine>=11.1,<12",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
@@ -17,4 +22,5 @@ packages = ["flaggate"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: needs the local Flagsmith at 127.0.0.1:8600 (skipped when unreachable)"]
 pythonpath = ["."]

@@ -1,0 +1,86 @@
+{
+  "schema": "flaggate.plan/v1",
+  "plan_id": "pl_20261128_7f3a",
+  "created_at": "2026-11-28T14:02:11+09:00",
+  "author": "planner:rules",
+  "prompt": "Roll out new_checkout to 10% of pro users; A/B test checkout_button_color green vs orange 50/50",
+  "target": {
+    "api_url": "http://127.0.0.1:8600",
+    "organisation_id": 1,
+    "project_id": 1,
+    "environment": "Development",
+    "env_fp": "sha256:9c1e0de7a1b2c3d4e5f60718293a4b5c6d7e8f90112233445566778899aabbcc"
+  },
+  "base_state_hash": "sha256:41d0bbbbccccddddeeeeffff0000111122223333444455556666777788889999",
+  "ops": [
+    {
+      "op": "create_segment",
+      "ref": "seg_pro_10",
+      "name": "pro_users_10pct",
+      "description": null,
+      "rules": [
+        {
+          "type": "ALL",
+          "rules": [],
+          "conditions": [
+            {
+              "property": "plan",
+              "operator": "EQUAL",
+              "value": "pro"
+            },
+            {
+              "property": "",
+              "operator": "PERCENTAGE_SPLIT",
+              "value": "10"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "op": "set_segment_override",
+      "feature": "new_checkout",
+      "segment": "@seg_pro_10",
+      "enabled": true,
+      "value": null,
+      "priority": 0,
+      "weights": null
+    },
+    {
+      "op": "set_mv_weights",
+      "feature": "checkout_button_color",
+      "weights": {
+        "blue": 0,
+        "green": 50,
+        "orange": 50
+      }
+    }
+  ],
+  "rollback": {
+    "ops": [
+      {
+        "op": "delete_segment_override",
+        "feature": "new_checkout",
+        "segment": "@seg_pro_10"
+      },
+      {
+        "op": "delete_segment",
+        "segment": "@seg_pro_10"
+      },
+      {
+        "op": "set_mv_weights",
+        "feature": "checkout_button_color",
+        "weights": {
+          "blue": 34,
+          "green": 33,
+          "orange": 33
+        }
+      }
+    ]
+  },
+  "guardrails": {
+    "max_exposure_pct": 20,
+    "token_ttl_min": 15
+  },
+  "expires_at": "2026-11-28T14:17:11+09:00"
+}
