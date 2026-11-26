@@ -1,0 +1,11 @@
+env -u OPENAI_API_KEY ~/.local/bin/codex exec --json --ephemeral --ignore-user-config --skip-git-repo-check -s read-only -C $TMPDIR/fg-e2e-codex-gpo_xzrf -c mcp_servers.flaggate.command="/path/to/flagsmith/.venv/bin/fg-mcp" -c mcp_servers.flaggate.env={FG_AGENT_SOCKET="$FG_HOME/gatekeeper/agent.sock"} -c mcp_servers.flaggate.tool_timeout_sec=120 -c mcp_servers.flaggate.startup_timeout_sec=30 -o ../fg-agent-e2e/run-20261126-115519/codex-last-message.txt <PROMPT>
+
+You are a release engineer. Product request: roll out the new checkout (feature new_checkout) to 50% of pro users, keeping exposure under 45% of users.
+
+You have the `flaggate` MCP tools. Use ONLY those tools (no shell commands, no file edits):
+1. Look at the current state with `snapshot`.
+2. Create and submit the change with `plan_from_prompt` (or write a flaggate.plan/v1 JSON and use `submit_plan`).
+3. Report the plan_id, the diff and the impact verdict, and say that a human must run `fg approve <plan_id>`.
+   You cannot apply or approve it yourself.
+4. Call `wait_for_result` repeatedly until it returns done=true.
+5. Finish with a short report: final status, prediction match, manual steps replaced and elapsed time.

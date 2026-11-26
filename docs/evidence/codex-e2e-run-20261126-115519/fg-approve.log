@@ -1,0 +1,42 @@
+PLAN pl_20261126_59c5   by planner:rules
+prompt: roll out new_checkout to 50% of pro users; keeping exposure under 45%
+
+hash  8829ff9fc89048a8072bb19a47aed2da6f05aa60310f4bd17b4814a220d10842   (recomputed locally)
+base  sha256:3a5cf05ebfcce9c603845b391b92879bfa4e3dbd5dc847ab49dda59ba3fd7fb2   live sha256:3a5cf05ebfcce9c603845b391b92879bfa4e3dbd5dc847ab49dda59ba3fd7fb2   OK
+
+DIFF (recomputed locally from the live snapshot)
+  + segments/new_checkout_rollout_pro  plan == pro AND 50% split
+  + features/new_checkout/overrides/new_checkout_rollout_pro  {enabled: on, value: null, priority: 0}
+
+IMPACT (computed by the gatekeeper with the Flagsmith flag engine)
+WHO CHANGES: 8 of 60 identities (13.3%); 52 unchanged
+GUARDRAILS: max exposure 13.3% ≤ 45%  [OK]  (new_checkout)
+VERDICT: APPROVABLE
+
+IMPACT PREVIEW  plan pl_20261126_59c5
+engine: flagsmith-flag-engine 11.1.2   sample: 60 identities (flagsmith identities API (≤200))
+environment document fetched 2026-11-26T11:55:50+09:00
+
+  - new_checkout  OFF → ON   8/60 (13.3%)  [toggle]
+      via new_checkout_rollout_pro: 8
+      e.g. e2e-user-0, e2e-user-6, e2e-user-10, e2e-user-16, e2e-user-25, e2e-user-31, e2e-user-35, e2e-user-36
+
+SEGMENTS
+  - new_checkout_rollout_pro: 0 → 8 members (+8 / −0), 13.3% of sample, 8 flips attributed
+
+GUARDRAILS
+  max exposure 13.3% ≤ guardrail 45%  [OK]  (new_checkout)
+  segment id still unknown to the server: over 17 possible ids, exposure ranges 11.7%–26.7% (new_checkout_rollout_pro)
+
+NOTES
+  ~ assumption: segment 'new_checkout_rollout_pro': server-assigned id assumed to be 1 (PERCENTAGE_SPLIT conditions hash on the segment id)
+
+ROLLBACK (pre-approved with this approval, single use, 24h)
+  1. delete_segment_override {'feature': 'new_checkout', 'segment': 'new_checkout_rollout_pro'}
+  2. delete_segment {'segment': 'new_checkout_rollout_pro'}
+
+Type the first 4 characters of the plan hash to approve (88..): 8829
+Approver passphrase: 
+approved by demo-human: apply token + pre-approved rollback token saved under $FG_HOME/approvals
+APPLIED pl_20261126_59c5: 2 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #3)
+manual steps replaced: 8   elapsed prompt→applied: 29s

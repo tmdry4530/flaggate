@@ -1,0 +1,9 @@
+# FlagGate MCP server for Codex CLI. Put this in a *project-local* or temporary CODEX config, or pass the same keys
+# with -c overrides (see examples/agent_e2e/run_codex_e2e.py). fg-mcp holds no Flagsmith key: the only thing it
+# needs is the gatekeeper's agent socket, which has no apply/rollback routes.
+[mcp_servers.flaggate]
+command = "/path/to/flagsmith/.venv/bin/fg-mcp"
+args = []
+env = { FG_AGENT_SOCKET = "~/.flaggate/gatekeeper/agent.sock" }
+startup_timeout_sec = 30
+tool_timeout_sec = 120   # wait_for_result blocks up to 50 s per call

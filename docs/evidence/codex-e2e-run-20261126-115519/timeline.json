@@ -1,0 +1,38 @@
+[
+ [
+  1.6,
+  "throw-away org 69 / project 69 / env 'it' ready, 60 identities seeded"
+ ],
+ [
+  3.0,
+  "gatekeeper pid 239525 up; agent socket $FG_HOME/gatekeeper/agent.sock"
+ ],
+ [
+  3.0,
+  "codex exec started"
+ ],
+ [
+  32.0,
+  "human: fg approve pl_20261126_59c5"
+ ],
+ [
+  46.9,
+  "human: fg approve exited 0"
+ ],
+ [
+  51.4,
+  "codex exec exited 0"
+ ],
+ [
+  54.8,
+  "fg rollback: ROLLED BACK pl_20261126_59c5: 7 Flagsmith calls, restored base state=True (audit #4)"
+ ],
+ [
+  56.2,
+  "throw-away org 69 deleted"
+ ],
+ [
+  56.3,
+  "~/.codex/config.toml unchanged: True"
+ ]
+]

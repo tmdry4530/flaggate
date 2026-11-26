@@ -1,0 +1,1 @@
+gatekeeper pid=239525 socket=$FG_HOME/gatekeeper/gk.sock agent-socket=$FG_HOME/gatekeeper/agent.sock api=http://127.0.0.1:8600 project=69 env=it approver=ed25519:190644ad55b2c08b non-dumpable=True
