@@ -101,7 +101,8 @@ Without a Flagsmith server you can run the impact engine alone on the test fixtu
 
 Needs Linux, Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/). No Docker, sudo, account or API key.
 
-**Verified: from an empty runtime in @@MIN@@ min** (@@DETAIL@@).
+**Verified: from an empty runtime in 2 min** (118 s measured: `uv sync` 1 s, Flagsmith self-host 75 s, seed 6 s,
+keygen to rollback 30 s; 606 MB of disk, 526 MB of it the Flagsmith runtime; with both pytest runs 159 s).
 The clean-room run used a fresh clone, an empty runtime directory and other ports (API 8601, Postgres 55433)
 on the development box, which already had uv and Python 3.13. Not tested on another machine.
 
@@ -145,8 +146,10 @@ Other commands: `fg snapshot [--json]`, `fg show <plan_id> [--json]`, `fg plan -
 `a/b test X a vs b [p/q]`, enable / disable, set a value, promote, stop rollout, archive, and a trailing
 `with max exposure N%`.
 
-The impact preview needs identities. The environment seeded by `scripts/seed.sh` has some; with none the plan is
-**NOT APPROVABLE** (fail-closed). Alternatively pass `--identities <absolute path>` (for example
+The impact preview needs identities. `scripts/seed.sh` leaves 62 in the environment (checked on the clean-room
+run); with none the plan is **NOT APPROVABLE** (fail-closed). Only one of the 62 is on the `pro` plan, so with the
+seed alone the 50% rollout in the plan above changes nothing visible, while the button A/B moves about half of the
+identities (33 of 62 in the clean-room run). For a bigger sample, pass more identities (see below). Alternatively pass `--identities <absolute path>` (for example
 `tests/fixtures/identities_200.csv`) to `fg gatekeeper init`.
 
 Guardrails live in the plan: `guardrails.max_exposure_pct` and the optional
