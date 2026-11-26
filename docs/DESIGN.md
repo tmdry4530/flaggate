@@ -118,6 +118,9 @@ scope. For stronger isolation, run the gatekeeper as another user or host. Nothi
 ## 5. Data shapes
 
 ### 5.1 Plan (`flaggate.plan/v1`)
+Normative schema, import paths, canonical rules and a hashed example: [PLAN_SCHEMA.md](PLAN_SCHEMA.md).
+`plan_hash()` returns a raw 64-char SHA-256 hex digest (no `sha256:` prefix). Multivariate `weights` maps must include the control variant and sum to 100.
+
 ```json
 {
   "schema": "flaggate.plan/v1",
@@ -225,6 +228,6 @@ wall-clock from prompt to applied. Target for the demo intent: ~14 manual dashbo
 | **Thu 11/26** (today) | Self-host spike, design, demo script | `selfhost-up.sh`/`seed.sh` reproducible; CLI + MCP verified; this doc |
 | **Fri 11/27** | `flaggate` core: Flagsmith client, snapshot + `base_state_hash`, plan schema (pydantic) + canonical hash, diff, executor for the v1 ops, auto-generated rollback, audit chain + `fg audit verify`, approver keygen + `fg approve` (TTY, Ed25519), gatekeeper unix-socket daemon, rule-based planner v1 | pytest: refuse on no token / wrong hash / replay / expired / drift / non-TTY; happy path applies against local Flagsmith |
 | **Sat 11/28** | Impact engine (env document + flag_engine, before/after, guardrails) + post-apply verification; `fg rollback` (pre-signed) and `fg promote` (winner from `metrics.csv` → plan with weights 100/0 or control value = winner); `fg-mcp` with read-only proxy of the official MCP; Codex/Claude Code MCP config snippets; `fg watch` panel | e2e script: prompt → plan → approve → apply → watch flips → rollback → promote, all green on local instance |
-| **Sun 11/29** | Polish output, README + architecture image, record the 2–3 min demo (DEMO.md), dry-run from a clean runtime with `selfhost-up.sh`. **Hand to EL by 20:00 KST** for review/push/submission (no push from dev2) | video + repo ready, 3.5 h buffer before 23:30 |
+| **Sun 11/29** | Polish output, README + architecture image, record the 2–3 min demo (DEMO.md), dry-run from a clean runtime with `selfhost-up.sh`. **Hand to EL by 15:00 KST** for review/push/submission (no push from dev2) | video + repo ready, 8.5 h buffer before 23:30 |
 
 Cut line if late: drop the tag mirror and the official MCP proxy (keep the agent → `fg-mcp` path), keep the impact preview + gate + rollback.

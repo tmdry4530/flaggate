@@ -5,6 +5,7 @@ An agent turns a rollout/experiment request into a Flagsmith change plan with a 
 exact plan hash. Rollback and winner promotion go through the same gate, and everything is audited in a hash chain.
 
 - Design: [docs/DESIGN.md](docs/DESIGN.md)
+- Plan schema (import `flaggate.plan`): [docs/PLAN_SCHEMA.md](docs/PLAN_SCHEMA.md)
 - Demo script: [docs/DEMO.md](docs/DEMO.md)
 - Local self-hosted Flagsmith (no docker/sudo): [docs/SELFHOST.md](docs/SELFHOST.md)
 
