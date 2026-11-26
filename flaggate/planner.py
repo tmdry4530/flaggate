@@ -130,8 +130,12 @@ def _rollout(ctx: _Ctx, feature: str, pct: float, who: str) -> None:
         target = f"@{ref}"
     ov = st.features[feature].overrides.get(seg)
     if ov is None or not ov.enabled:
+        # Flagsmith rejects two segment overrides of a feature with the same priority ("Duplicate priority: 0"),
+        # so a new override goes behind the existing ones; an existing one keeps its priority.
+        others = [o.priority for name, o in st.features[feature].overrides.items() if name != seg]
+        prio = ov.priority if ov is not None else (max(others) + 1 if others else 0)
         ctx.add(SetSegmentOverrideOp(op="set_segment_override", feature=feature, segment=target, enabled=True,
-                                     value=st.features[feature].env.value if ov is None else ov.value, priority=0))
+                                     value=st.features[feature].env.value if ov is None else ov.value, priority=prio))
     ctx.exposures.append(pct)
 
 

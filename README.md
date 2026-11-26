@@ -100,7 +100,16 @@ Without a Flagsmith server you can run the impact engine alone on the test fixtu
 ## Quick start
 
 Needs Linux, Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/). No Docker, sudo, account or API key.
-(Verified on the development box only, not on a clean machine.)
+
+**Verified: from an empty runtime in @@MIN@@ min** (@@DETAIL@@).
+The clean-room run used a fresh clone, an empty runtime directory and other ports (API 8601, Postgres 55433)
+on the development box, which already had uv and Python 3.13. Not tested on another machine.
+
+To use other ports or directories, set these before the scripts (defaults in brackets):
+`FLAGSMITH_RUNTIME` [`../flagsmith-runtime`], `API_PORT` [8600],
+`PG_PORT` [55432], `FLAGSMITH_LOGDIR` [`$FLAGSMITH_RUNTIME/logs`]; for `fg`, `FLAGSMITH_API_URL`
+[`http://127.0.0.1:8600`] and `FG_HOME` [`~/.flaggate`]. `scripts/selfhost-down.sh` stops the runtime that
+`FLAGSMITH_RUNTIME` points to.
 
 ```bash
 # 1. FlagGate itself (project venv in ./.venv)
@@ -122,7 +131,7 @@ fg gatekeeper init --organisation-id 1 --project-id 1 --environment Development 
 fg gatekeeper start &                  # asks for the gatekeeper passphrase
 
 # 5. Plan, approve, apply, roll back
-fg plan "roll out new_checkout to 50% of pro users"
+fg plan "roll out new_checkout to 50% of pro users; a/b test checkout_button_color green vs orange 50/50"
 fg apply <plan_id>                     # REFUSED (no_valid_approval)
 fg approve <plan_id>                   # diff + impact + rollback; type 4 hash chars + passphrase; then applies
 fg audit verify && fg audit show

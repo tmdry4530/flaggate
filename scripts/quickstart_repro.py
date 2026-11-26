@@ -87,7 +87,7 @@ gk_pid, gk_fd, _ = run([FG, "gatekeeper", "start"], [], background=True, wait_fo
 os.write(gk_fd, (GATEKEEPER_PASS + "\n").encode())
 time.sleep(3)
 try:
-    code, out = run([FG, "plan", "roll out new_checkout to 50% of pro users"])
+    code, out = run([FG, "plan", "roll out new_checkout to 50% of pro users; a/b test checkout_button_color green vs orange 50/50"])
     need(code == 0, "fg plan")
     pid = re.search(r"^plan\s+(\S+)", out, re.M).group(1)
     need("VERDICT" in out, "no impact verdict in `fg plan`")
