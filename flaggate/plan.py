@@ -73,12 +73,16 @@ class Target(_Strict):
 class Guardrails(_Strict):
     max_exposure_pct: float = Field(ge=0, le=100)
     token_ttl_min: int = Field(default=15, ge=1)
+    max_variant_shift_pct: float | None = Field(
+        default=None, ge=0, le=100,
+        description="Optional cap on multivariate variant re-assignment; omitted from the canonical form when None",
+    )
 
-    @field_validator("max_exposure_pct")
+    @field_validator("max_exposure_pct", "max_variant_shift_pct")
     @classmethod
-    def _finite_exposure(cls, value: float) -> float:
-        if not math.isfinite(value):
-            raise ValueError("max_exposure_pct must be finite")
+    def _finite_exposure(cls, value: float | None) -> float | None:
+        if value is not None and not math.isfinite(value):
+            raise ValueError("guardrail percentages must be finite")
         return value
 
 
@@ -291,6 +295,11 @@ def _normalize(value: Any) -> Any:
     raise TypeError(f"cannot canonicalize {type(value).__name__}")
 
 
+# (path inside the plan payload) of optional fields added after v1 shipped; omitted from the
+# canonical form when None so pre-existing plan hashes stay valid.
+_OMIT_WHEN_NONE: tuple[tuple[str, ...], ...] = (("guardrails", "max_variant_shift_pct"),)
+
+
 def canonical_bytes(plan: Plan) -> bytes:
     """UTF-8 canonical JSON of the semantic fields: sorted keys, no whitespace.
 
@@ -298,9 +307,17 @@ def canonical_bytes(plan: Plan) -> bytes:
     default, with `-0.0` collapsed to `0.0`; non-finite values are rejected).
     Enums use their values. `None` is emitted as `null` (not omitted), so an
     explicit null stays distinct from a missing field at parse time. List order
-    is preserved (ops are ordered).
+    is preserved (ops are ordered). Exception: optional fields listed in
+    `_OMIT_WHEN_NONE` are dropped when None, so adding them did not change
+    the hash of existing plans.
     """
     payload = plan.model_dump(mode="python", by_alias=True, exclude=set(NON_SEMANTIC_FIELDS))
+    for path in _OMIT_WHEN_NONE:
+        node = payload
+        for key in path[:-1]:
+            node = node.get(key) if isinstance(node, dict) else None
+        if isinstance(node, dict) and node.get(path[-1], ...) is None:
+            del node[path[-1]]
     normalized = _normalize(payload)
     return json.dumps(normalized, ensure_ascii=False, separators=(",", ":"), sort_keys=True).encode("utf-8")
 

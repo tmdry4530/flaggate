@@ -310,3 +310,27 @@ def test_aware_datetime_objects_accepted():
         update={"created_at": datetime(2026, 11, 28, 5, 2, 11, tzinfo=timezone.utc)}
     )
     assert plan_hash(rebuilt) == plan_hash(plan)
+
+
+def test_max_variant_shift_pct_none_keeps_golden_hash():
+    plan = Plan.model_validate(EXAMPLE)
+    assert plan.guardrails.max_variant_shift_pct is None
+    assert "max_variant_shift_pct" not in canonical_json(plan)
+    assert plan_hash(plan) == GOLDEN_HASH == "78dd43e38a6d86fe7a598facf69cc0ad1a8d4fb24909d851227ef3e487e35adf"
+    explicit_null = deepcopy(EXAMPLE)
+    explicit_null["guardrails"]["max_variant_shift_pct"] = None
+    assert plan_hash(Plan.model_validate(explicit_null)) == GOLDEN_HASH
+
+
+def test_max_variant_shift_pct_set_is_semantic_and_validated():
+    data = deepcopy(EXAMPLE)
+    data["guardrails"]["max_variant_shift_pct"] = 60
+    plan = Plan.model_validate(data)
+    assert '"max_variant_shift_pct":60.0' in canonical_json(plan)
+    assert plan_hash(plan) != GOLDEN_HASH
+    data["guardrails"]["max_variant_shift_pct"] = 61
+    assert plan_hash(Plan.model_validate(data)) != plan_hash(plan)
+    for bad in (-1, 101, float("nan")):
+        data["guardrails"]["max_variant_shift_pct"] = bad
+        with pytest.raises(ValidationError):
+            Plan.model_validate(data)

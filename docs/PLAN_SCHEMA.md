@@ -19,7 +19,7 @@ from flaggate.plan import SetMvWeightsOp, SegmentRule  # any model below
 | `NON_SEMANTIC_FIELDS` | const | `frozenset({"plan_hash", "impact", "status", "metadata"})` |
 | `Plan` | model | the plan document |
 | `Target` | model | `api_url: str`, `organisation_id: int`, `project_id: int`, `environment: str` (name), `env_fp: str` |
-| `Guardrails` | model | `max_exposure_pct: float` (0–100), `token_ttl_min: int` (≥ 1, default 15) |
+| `Guardrails` | model | `max_exposure_pct: float` (0–100), `token_ttl_min: int` (≥ 1, default 15), `max_variant_shift_pct: float \| None` (0–100, default `None`; added 2026-11-26, EL-approved) |
 | `Rollback` | model | `ops: list[Op]` (may be empty; gatekeeper overwrites these later) |
 | `SegmentRule` | model | `type: "ALL"\|"ANY"\|"NONE"`, `rules: list[SegmentRule]`, `conditions: list[SegmentCondition]` |
 | `SegmentCondition` | model | `property: str`, `operator: str`, `value: str` |
@@ -87,10 +87,15 @@ plan_hash(plan) = hex(sha256(canonical_bytes(plan)))
 3. List order is preserved (`ops` are ordered; swapping two ops changes the hash).
 4. Datetimes are converted to UTC and formatted as `YYYY-MM-DDTHH:MM:SSZ` (second precision, trailing `Z`). `2026-11-28T14:02:11+09:00` and `2026-11-28T05:02:11Z` are the same.
 5. Floats are JSON numbers using Python's default encoder; `-0.0` is collapsed to `0.0`; non-finite values are rejected. Integer-valued floats stay floats (`50` → `50.0`).
-6. Enums are replaced by their values. `None` is emitted as `null` (not omitted), so an explicit null is visible in the hash payload.
+6. Enums are replaced by their values. `None` is emitted as `null` (not omitted), so an explicit null is visible in the hash payload. **Exception:** `guardrails.max_variant_shift_pct` is omitted when `None`, so plans written before the field existed keep their hash (the golden hash below is locked by a test).
 7. `ensure_ascii=False` (UTF-8).
 
 Changing a semantic field, including key order in the *input*, must not change the hash unless the *value* changed. Changing `status`, `impact`, `plan_hash`, or `metadata` must not change the hash.
+
+## Guardrail semantics
+
+* `max_exposure_pct`: max share of sampled identities whose enabled state or plain value changes (per feature).
+* `max_variant_shift_pct`: optional cap on multivariate variant re-assignment (A/B weight changes), reported separately as "variant shift". `None` = not enforced.
 
 ## Example
 
