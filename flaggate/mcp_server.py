@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from flaggate.hooks import render_impact
+from flaggate.planner import GRAMMAR_SHORT
 from flaggate.gk_client import GatekeeperClient, GatekeeperError
 from flaggate.state import describe_rules
 
@@ -175,9 +176,10 @@ TOOL_SPECS: list[dict[str, Any]] = [
      "inputSchema": {"type": "object", "properties": {}}},
     {"name": "plan_schema", "description": "The flaggate.plan/v1 op vocabulary and a template pre-filled with "
      "target + base_state_hash. Call before submit_plan.", "inputSchema": {"type": "object", "properties": {}}},
-    {"name": "plan_from_prompt", "description": "Turn a simple intent (e.g. 'roll out X to 10% of pro users', "
-     "'a/b test F a vs b 50/50', 'disable F', 'promote V for F') into a plan with the gatekeeper's rule-based "
-     "planner and submit it for human approval. Returns diff, impact preview, rollback and plan_id. Does NOT apply.",
+    {"name": "plan_from_prompt", "description": "Turn an intent into a plan with the gatekeeper's rule-based "
+     "(non-LLM) planner and submit it for human approval. Returns diff, impact preview, rollback and plan_id. "
+     "Does NOT apply. Grammar: " + GRAMMAR_SHORT + " Text outside this grammar is rejected with the part that was "
+     "not understood (nothing is silently dropped); for anything else write a plan and use submit_plan.",
      "inputSchema": {"type": "object", "properties": {"prompt": {"type": "string"}}, "required": ["prompt"]}},
     {"name": "submit_plan", "description": "Submit a flaggate.plan/v1 JSON you wrote for human approval. Returns diff, "
      "impact preview, rollback and plan_id. Does NOT apply.",

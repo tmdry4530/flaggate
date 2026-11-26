@@ -164,6 +164,23 @@ def main() -> int:
         with open(out / "codex.jsonl", "w") as jl, open(out / "codex.stderr.log", "w") as er:
             cp = subprocess.run(cmd, env={**env, "NO_COLOR": "1"}, stdout=jl, stderr=er, timeout=1200)
         mark(f"codex exec exited {cp.returncode}")
+        calls = []
+        for line in (out / "codex.jsonl").read_text().splitlines():
+            ev_ = json.loads(line)
+            item = ev_.get("item") or {}
+            if ev_.get("type") == "item.completed" and item.get("type") == "mcp_tool_call":
+                res = item.get("result") or {}
+                calls.append({"tool": item.get("tool"), "arguments": item.get("arguments"),
+                              "ok": item.get("status") == "completed" and not res.get("isError")
+                              and not item.get("error")})
+        pfp = [c for c in calls if c["tool"] in ("plan_from_prompt", "submit_plan")]
+        summary = {"tool_calls": [c["tool"] for c in calls],
+                   "first_plan_call": pfp[0] if pfp else None,
+                   "first_try_success": bool(pfp and pfp[0]["ok"]),
+                   "plan_calls": len(pfp), "approvals": approvals}
+        (out / "summary.json").write_text(json.dumps(summary, indent=1))
+        mark(f"first plan call ok={summary['first_try_success']} ({len(pfp)} plan call(s)): "
+             f"{json.dumps((pfp[0]['arguments'] if pfp else None))}")
 
         for name, args in (("fg-audit-verify", ["audit", "verify"]), ("fg-audit-show", ["audit", "show"])):
             p = subprocess.run([FG, *args], env=env, capture_output=True, text=True)

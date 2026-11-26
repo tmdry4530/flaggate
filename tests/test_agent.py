@@ -58,6 +58,14 @@ def test_tool_list_has_no_apply_or_approve():
                                   "openWorldHint": False}
 
 
+def test_plan_from_prompt_description_carries_the_grammar():
+    from flaggate.mcp_server import TOOL_SPECS
+    from flaggate.planner import GRAMMAR_SHORT
+
+    d = next(t for t in TOOL_SPECS if t["name"] == "plan_from_prompt")["description"]
+    assert GRAMMAR_SHORT in d and "Does NOT apply" in d and "max exposure N%" in d
+
+
 def test_mcp_module_never_touches_keys():
     """fg-mcp imports neither the Flagsmith client, the sealed secrets, nor the approver private-key code."""
     tree = ast.parse((ROOT / "flaggate/mcp_server.py").read_text())
