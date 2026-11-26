@@ -14,7 +14,7 @@ scripts/selfhost-down.sh   # stops only what selfhost-up started (pid file / pg_
 
 Runtime lives **outside** the repo: `../flagsmith-runtime/`
 (`src/` sparse clone, `venv/` API deps, `pgconda/` Postgres, `pgdata/`, `mcpvenv/`, `cli/`, `logs/`,
-`local.env` = generated secrets, chmod 600, never committed/printed). Disk used ≈ 1 GB.
+`local.env` = generated secrets, chmod 600, never committed/printed). Disk used ≈ 630 MB (plus uv/npm caches in $HOME).
 
 ## What works / what doesn't
 
