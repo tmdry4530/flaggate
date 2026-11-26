@@ -21,3 +21,4 @@ state/
 demo-video/.tools/
 demo-video/clips/*.gif
 demo-video/clips/*.mp4
+demo-video/final-render/

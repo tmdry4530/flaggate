@@ -1,5 +1,8 @@
 # FlagGate demo script (target 2:40, hard max 3:00)
 
+> The submission video is built by a script, with English subtitles and no narration: see [VIDEO.md](VIDEO.md)
+> (`demo-video/make-final-video.sh` records and edits it end to end). The table below is the original voice-over plan.
+
 Setup before recording: local Flagsmith running (`scripts/selfhost-up.sh`, `scripts/seed.sh`), gatekeeper
 started by the human in terminal **B** (passphrase typed off-camera), `fg watch` persona panel in pane **C**
 (5 personas: alice/pro/KR, bob/free/US, chen/pro/US, dana/free/KR, eve/pro/DE + 200 sampled identities).
