@@ -181,6 +181,13 @@ How: GET environment document (server key) → deep copy → apply plan ops to t
 evaluate every sampled identity before/after with `flag_engine` → aggregate. After apply: evaluate
 the same identities through the live API (SDK / `flagsmith evaluate --identity`) and report
 `prediction_match: 200/200`.
+**Exposure** counts only on/off and value changes; reassigning an identity between multivariate variants is
+reported separately as **variant shift** (optional cap `guardrails.max_variant_shift_pct`), and
+`archive_feature` is shown as a no-op for evaluation (Flagsmith keeps serving archived flags).
+**Two-phase apply (implemented):** new segments are created first, the impact is re-predicted with the real
+segment ids (PERCENTAGE_SPLIT hashes on them); if that breaks a guardrail the gatekeeper deletes the new
+segments, audits `halted`, and stops. Otherwise it applies the rest and compares the re-prediction with the
+live post-apply verify.
 
 ### 5.4 Audit record
 ```json
@@ -204,8 +211,8 @@ Admin API (`Authorization: Api-Key <org admin key>`):
 | state snapshot | `GET /api/v1/organisations/`, `GET /api/v1/projects/?organisation=`, `GET /api/v1/environments/?project=` |
 | features | `GET/POST /api/v1/projects/{p}/features/`, `GET/POST/PUT /api/v1/projects/{p}/features/{f}/mv-options/` |
 | segments | `GET/POST/PUT/DELETE /api/v1/projects/{p}/segments/` (`PERCENTAGE_SPLIT`, `EQUAL`, … operators) |
-| segment overrides | `POST /api/v1/environments/{env}/features/{f}/create-segment-override/`, `GET/DELETE /api/v1/features/feature-segments/` |
-| env flag state | `GET /api/v1/environments/{env}/featurestates/?feature=`, `PATCH/PUT …/featurestates/{id}/` (enabled, value, `multivariate_feature_state_values` weights) |
+| flag state + segment overrides (what `flaggate/executor.py` uses) | `GET/PATCH /api/__future__/environments/{env}/features/{f}/` (`environment_default` / `segment_overrides`, incl. MV `variants` weights; the same endpoint the official CLI v2 uses), `DELETE …/segment-overrides/{segment}/`; read-back of overrides `GET /api/v1/features/featurestates/?environment=&feature=` |
+| v1 pitfalls found on v2.295.2 | PATCHing MV weights through the v1 env featurestate is silently ignored and `PATCH /api/v1/features/featurestates/{id}/` returns 500, so v1 is used only for features, mv-options, segments and archive (`PATCH …/features/{f}/ {is_archived}`); `PERCENTAGE_SPLIT` conditions must send `property: null` (`""` → 400, missing → 500) |
 | impact | `GET /api/v1/environment-document/` (server key), `GET /api/v1/environments/{env}/identities/` (+ traits) |
 | keys for SDK | `POST /api/v1/environments/{env}/api-keys/` |
 | traceability | `POST /api/v1/projects/{p}/tags/` + feature `tags` (mirror `fg:<plan_id>`) |
