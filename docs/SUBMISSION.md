@@ -1,7 +1,7 @@
 # FlagGate: submission text
 
 Toggle Wars (Flagsmith × WeMakeDevs), **Track 2: AI Agents and Feature Flags**.
-Demo video: **[link coming soon](#)** <!-- TODO(submission): replace with the demo video URL -->
+Demo video: **[watch on YouTube](https://youtu.be/rLrh_eTj1z8)**
 
 Every number below comes from a file in this repository; the source is given in brackets.
 

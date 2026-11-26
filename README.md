@@ -2,7 +2,7 @@
 
 **An AI agent plans Flagsmith rollouts and A/B tests, previews the impact with Flagsmith's own flag engine, and changes nothing until a human signs the exact plan.**
 
-*Toggle Wars, Track 2: AI Agents and Feature Flags.* Demo video: **[link coming soon](#)** <!-- TODO(submission): replace with the demo video URL -->
+*Toggle Wars, Track 2: AI Agents and Feature Flags.* Demo video: **[watch on YouTube](https://youtu.be/rLrh_eTj1z8)**
 
 ## Track 2 at a glance
 
