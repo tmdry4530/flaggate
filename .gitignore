@@ -1,0 +1,18 @@
+# runtime / local state (never commit)
+logs/
+.runtime/
+.flagsmith-local.env
+*.env
+.env*
+!.env.example
+venv/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+*.sqlite3
+*.db
+pgdata/
+# approval secrets / audit state live outside the repo or here (gitignored)
+.approvals/
+state/
