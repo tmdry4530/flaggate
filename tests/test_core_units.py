@@ -54,6 +54,17 @@ def test_planner_rollout_creates_feature_segment_override():
     assert p.base_state_hash == state_hash(demo_snapshot()) and p.guardrails.max_exposure_pct == 20
 
 
+def test_planner_new_override_does_not_reuse_an_existing_priority():
+    """Found by the clean-room repro: the seed already has an override on new_checkout (priority 0); Flagsmith
+    answers 400 'Duplicate priority: 0' if the planner also uses 0."""
+    snap = demo_snapshot()
+    assert snap.features["new_checkout"].overrides["pro_users"].priority == 0
+    p = plan_from_prompt("roll out new_checkout to 25% of beta users", snap)
+    assert [o.priority for o in p.ops if o.op == "set_segment_override"] == [1]
+    p = plan_from_prompt("roll out dark_mode to 10% of pro users", snap)      # new feature: nothing to collide with
+    assert [o.priority for o in p.ops if o.op == "set_segment_override"] == [0]
+
+
 def test_planner_gradual_rollout_updates_existing_segment():
     snap = demo_snapshot()
     p1 = plan_from_prompt("roll out new_checkout to 10% of beta users", snap)

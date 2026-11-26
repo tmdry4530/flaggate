@@ -232,6 +232,21 @@ def diagnose(impact: ImpactResult, result: VerifyResult, live_document: Mapping[
     return out
 
 
+def _prefill(identities: Sequence[Identity], cached: Callable[[Identity], Any], workers: int = 8) -> None:
+    """Warm the cache with concurrent live evaluations (one HTTP call per identity). Errors are left for the
+    sequential pass in compare_predictions to raise or report exactly as before."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(ident: Identity) -> None:
+        try:
+            cached(ident)
+        except Exception:  # noqa: BLE001 - re-raised/handled by the sequential comparison
+            pass
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(one, identities))
+
+
 def verify_prediction(impact: ImpactResult, live_eval: LiveEval, *,
                       live_document: Mapping[str, Any] | None = None) -> VerifyResult:
     """Compare ``impact.predictions()`` with ``live_eval`` for every sampled identity."""
@@ -244,6 +259,7 @@ def verify_prediction(impact: ImpactResult, live_eval: LiveEval, *,
             cache[ident.identifier] = live_eval(ident)
         return cache[ident.identifier]
 
+    _prefill(impact.identities, cached)
     result = compare_predictions(impact.predictions(), impact.identities, cached)
     if result.mismatches and live_document is not None:
         result.diagnosis = diagnose(impact, result, live_document)

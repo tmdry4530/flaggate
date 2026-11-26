@@ -83,7 +83,7 @@ def clear(pause: float = 1.4) -> None:
 
 def test_clip() -> None:
     """~20 s: plan + impact preview -> agent cannot apply -> human approves -> applied and verified."""
-    prompt = "roll out new_checkout to 10% of pro users"
+    prompt = "roll out new_checkout to 25% of pro users"
     comment("an agent asks FlagGate for a change; FlagGate shows who would be affected before anything happens")
     text, _ = shell(f'fg plan "{prompt}"', [FG, "plan", prompt])
     pid = plan_id_from(text)
@@ -139,7 +139,7 @@ def approve(pid: str) -> tuple[str, int]:
 
 def readme_demo() -> None:
     """~30 s: the README "30-second demo": rollout + A/B plan, refused apply, human approval, rollback, audit check."""
-    prompt = ("roll out new_checkout to 10% of pro users; "
+    prompt = ("roll out new_checkout to 25% of pro users; "
               "a/b test checkout_button_color green vs orange 50/50")
     text, _ = shell(f'fg plan "{prompt}"', [FG, "plan", prompt])
     pid = plan_id_from(text)

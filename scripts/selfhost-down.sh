@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Uses FLAGSMITH_RUNTIME (default: the original runtime), so point it at the runtime you want to stop.
 # Stop only the processes selfhost-up.sh started (by recorded PID / pg_ctl), never pkill.
 set -euo pipefail
 RUNTIME="${FLAGSMITH_RUNTIME:-../flagsmith-runtime}"
