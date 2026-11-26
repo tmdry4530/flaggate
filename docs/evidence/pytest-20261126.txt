@@ -1,0 +1,13 @@
+pytest results, 2026-11-26 (KST), branch dev2/public-ready on top of commit ac6d868
+
+1) Fresh clone (git clone of the local repo into an empty directory), README quick-start step 1:
+   uv sync --extra dev ; FLAGSMITH_RUNTIME=<local runtime> .venv/bin/pytest -q
+   -> 183 passed in 81.84s (live tests against a local self-hosted Flagsmith v2.295.2, throw-away organisations)
+
+2) Same fresh clone, no runtime configured (FLAGSMITH_RUNTIME unset, so ../flagsmith-runtime does not exist):
+   .venv/bin/pytest -q
+   -> 174 passed, 3 skipped in 9.09s (live test modules skip)
+
+3) Development checkout, same tree:
+   .venv/bin/pytest -q
+   -> 183 passed in 76.50s

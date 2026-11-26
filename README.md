@@ -126,7 +126,7 @@ To use other ports or directories, set these before the scripts (defaults in bra
 ```bash
 # 1. FlagGate itself (project venv in ./.venv)
 uv sync --extra dev
-.venv/bin/pytest -q                    # live tests skip when Flagsmith is not running
+.venv/bin/pytest -q                    # live tests skip unless Flagsmith runs and $FLAGSMITH_RUNTIME/local.env exists
 export PATH="$PWD/.venv/bin:$PATH"     # puts `fg` on the PATH
 
 # 2. Self-hosted Flagsmith v2.295.2 on http://127.0.0.1:8600 (runtime goes outside the repo,
