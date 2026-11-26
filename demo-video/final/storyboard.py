@@ -69,7 +69,7 @@ TERMINAL_SEGMENTS = [
         "subs": [
             ("start", 0.3, 4.5, S3, "The human's terminal. An apply through the agent's socket is refused: that door has no apply route."),
             ("h_refused", 1.0, 3.0, S3, "fg approve recomputes the diff and the impact itself."),
-            ("v1", 0.0, 6.5, S3, "Who changes: {who}. Guardrail: {guard} {verdict}. Computed with Flagsmith's own flag engine."),
+            ("v1", 0.0, 6.5, S3, "Who changes: {who}, rollout and button test together. Guardrail: {guard} {verdict}."),
             ("h_review", 0.2, 5.5, S4, "The human types 4 characters of the plan hash, then a hidden passphrase: an Ed25519 signature for this exact plan."),
             ("h_applied", -4.2, 3.5, S5, "Two-phase apply: create the segment, predict again with its real id, then apply."),
             ("h_applied", -1.4, 4.5, S5, "Checked against live Flagsmith: prediction matched {match}. Manual steps replaced: {steps}."),

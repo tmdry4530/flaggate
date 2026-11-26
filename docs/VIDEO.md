@@ -31,7 +31,7 @@ It builds a throw-away Flagsmith organisation on the local self-host (the demo e
 
 * `start+0.3` **3/7  IMPACT PREVIEW: WHO CHANGES, AND THE GUARDRAILS**: The human's terminal. An apply through the agent's socket is refused: that door has no apply route.
 * `h_refused+1.0` **3/7  IMPACT PREVIEW: WHO CHANGES, AND THE GUARDRAILS**: fg approve recomputes the diff and the impact itself.
-* `v1+0.0` **3/7  IMPACT PREVIEW: WHO CHANGES, AND THE GUARDRAILS**: Who changes: {who}. Guardrail: {guard} {verdict}. Computed with Flagsmith's own flag engine.
+* `v1+0.0` **3/7  IMPACT PREVIEW: WHO CHANGES, AND THE GUARDRAILS**: Who changes: {who}, rollout and button test together. Guardrail: {guard} {verdict}.
 * `h_review+0.2` **4/7  THE HUMAN APPROVES WITH FG APPROVE**: The human types 4 characters of the plan hash, then a hidden passphrase: an Ed25519 signature for this exact plan.
 * `h_applied-4.2` **5/7  APPLY, THEN VERIFY AGAINST LIVE FLAGSMITH**: Two-phase apply: create the segment, predict again with its real id, then apply.
 * `h_applied-1.4` **5/7  APPLY, THEN VERIFY AGAINST LIVE FLAGSMITH**: Checked against live Flagsmith: prediction matched {match}. Manual steps replaced: {steps}.
