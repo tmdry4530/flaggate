@@ -1,0 +1,9 @@
+**Plan:** `pl_20261126_95e0`
+
+**Diff:** Added `new_checkout_rollout_pro` (pro users, 50% split) and enabled `new_checkout` for that segment.
+
+**Impact verdict:** Approveable. The preview estimated 8/60 identities (13.3%) exposed, below the 45% cap. It noted that exposure could range up to 26.7% while the server-assigned segment ID was unknown.
+
+**Final status:** Applied after human approval. Prediction matched **60/60** identities. The plan replaced **8 manual steps**; elapsed time was **18.6 seconds**.
+
+A human ran `fg approve pl_20261126_95e0`.

@@ -1,0 +1,19 @@
+{
+ "tool_calls": [
+  "snapshot",
+  "plan_from_prompt",
+  "wait_for_result"
+ ],
+ "first_plan_call": {
+  "tool": "plan_from_prompt",
+  "arguments": {
+   "prompt": "roll out new_checkout to 50% of pro users with max exposure 45%"
+  },
+  "ok": true
+ },
+ "first_try_success": true,
+ "plan_calls": 1,
+ "approvals": {
+  "pl_20261126_95e0": "exit 0"
+ }
+}

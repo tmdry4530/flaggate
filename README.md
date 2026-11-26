@@ -179,15 +179,16 @@ env = { FG_AGENT_SOCKET = "~/.flaggate/gatekeeper/agent.sock" }
 tool_timeout_sec = 120   # wait_for_result blocks up to 50 s per call
 ```
 
-Verified with a real agent (Codex CLI 0.166.0, `codex exec`, throw-away org). Codex submitted the plan through
-fg-mcp, the human step ran `fg approve`, and the gatekeeper applied it. Redacted log:
-[docs/evidence/codex-e2e-run-20261126-115519/](docs/evidence/codex-e2e-run-20261126-115519/)
+Verified with a real agent (Codex CLI 0.166.0, `codex exec`, throw-away org): in 3 of 3 runs Codex's first
+`plan_from_prompt` call was accepted, the human step ran `fg approve`, and the gatekeeper applied the plan.
+Redacted log of the latest run:
+[docs/evidence/codex-e2e-run3-20261126-122039/](docs/evidence/codex-e2e-run3-20261126-122039/)
 ```
-[ 32.0s] human: fg approve pl_20261126_59c5
-APPLIED pl_20261126_59c5: 2 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #3)
-manual steps replaced: 8   elapsed prompt→applied: 29s
+[ 33.0s] human: fg approve pl_20261126_95e0
+APPLIED pl_20261126_95e0: 2 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #3)
+manual steps replaced: 8   elapsed prompt→applied: 19s
 ```
-In that run the approval was typed by a pty script (demo automation only; it still has to pass the TTY check
+In these runs the approval was typed by a pty script (demo automation only; it still has to pass the TTY check
 and type the passphrase). Reproduce with `examples/agent_e2e/run_codex_e2e.py`. Without an agent,
 `fg plan "<prompt>"` runs the same flow with the keyless planner.
 

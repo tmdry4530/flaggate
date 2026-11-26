@@ -228,7 +228,7 @@ Official **Python SDK** 6.3.0: `fg watch` persona panel (local evaluation).
 Every run prints `manual steps replaced: N` (the Flagsmith calls plus UI pages a human would click) and
 wall-clock from prompt to applied. Implemented in `flaggate/metrics.py` (per-op dashboard-step table + 1
 "who is affected?" check; see docs/AGENT.md); recorded Codex e2e run: `manual steps replaced: 8   elapsed
-prompt→applied: 29s` (docs/evidence/). Target for the demo intent: ~14 manual dashboard steps + a manual
+prompt→applied: 19s` (docs/evidence/). Target for the demo intent: ~14 manual dashboard steps + a manual
 "who is affected" check → 1 prompt + 1 approval, about 40 s.
 
 ## 8. Build plan to 11/29 23:30 KST

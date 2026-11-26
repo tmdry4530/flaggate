@@ -1,0 +1,42 @@
+[
+ [
+  1.4,
+  "throw-away org 151 / project 151 / env 'it' ready, 60 identities seeded"
+ ],
+ [
+  3.0,
+  "gatekeeper pid 270416 up; agent socket $FG_HOME/gatekeeper/agent.sock"
+ ],
+ [
+  3.0,
+  "codex exec started"
+ ],
+ [
+  33.0,
+  "human: fg approve pl_20261126_95e0"
+ ],
+ [
+  42.3,
+  "human: fg approve exited 0"
+ ],
+ [
+  49.6,
+  "codex exec exited 0"
+ ],
+ [
+  49.6,
+  "first plan call ok=True (1 plan call(s)): {\"prompt\": \"roll out new_checkout to 50% of pro users with max exposure 45%\"}"
+ ],
+ [
+  52.9,
+  "fg rollback: ROLLED BACK pl_20261126_95e0: 7 Flagsmith calls, restored base state=True (audit #4)"
+ ],
+ [
+  54.1,
+  "throw-away org 151 deleted"
+ ],
+ [
+  54.1,
+  "~/.codex/config.toml unchanged: True"
+ ]
+]

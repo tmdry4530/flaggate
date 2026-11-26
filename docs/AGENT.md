@@ -57,7 +57,7 @@ override = 3, MV weights = 2 + one per variant) plus one "who is affected?" chec
 `fg approve`/`fg apply` print, and the `applied` audit record stores:
 ```
 APPLIED pl_…: 2 Flagsmith calls, two-phase=True, prediction matched 60/60 (audit #3)
-manual steps replaced: 8   elapsed prompt→applied: 28s
+manual steps replaced: 8   elapsed prompt→applied: 19s
 ```
 Elapsed is from the plan's `created_at` (when the agent's prompt became a plan) to the gatekeeper's apply.
 
@@ -73,5 +73,8 @@ env -u OPENAI_API_KEY -u UV_PROJECT_ENVIRONMENT .venv/bin/python examples/agent_
 * **Demo automation only:** the human approval is played by `examples/agent_e2e/pty_approve.py`, which types the
   hash prefix and the approver passphrase into `fg approve` on a pseudo-terminal. It does not bypass the TTY
   check or the passphrase; in a real run a person types them.
+* `summary.json` records the first `plan_from_prompt`/`submit_plan` call and whether it was accepted
+  (3/3 first-try successes on 2026-11-26 after the planner accepted natural wording and the tool description
+  started carrying the grammar).
 * Raw logs go to `../fg-agent-e2e/<run>/` (outside the repo); a redacted copy (keys, passwords, e-mail
   addresses and the temp home replaced) goes to `docs/evidence/codex-e2e-<run>/`.
