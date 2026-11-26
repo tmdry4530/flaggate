@@ -108,5 +108,14 @@ try:
     need("chain OK" in out, "fg audit verify after rollback")
     say("[repro] quick start steps 3-5 OK")
 finally:
-    os.kill(gk_pid, signal.SIGINT)
-    time.sleep(1)
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):   # stop only the gatekeeper this script started
+        try:
+            os.kill(gk_pid, sig)
+        except ProcessLookupError:
+            break
+        time.sleep(1.5)
+        try:
+            if os.waitpid(gk_pid, os.WNOHANG)[0]:
+                break
+        except ChildProcessError:
+            break
